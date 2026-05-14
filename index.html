@@ -642,7 +642,7 @@ function renderList(reports){
   const list=document.getElementById('reportList');
   if(!reports.length){list.innerHTML=`<div style="text-align:center;padding:48px;color:var(--text3);font-size:13px">리포트가 없어요</div>`;return;}
   list.innerHTML=[...reports].reverse().map(r=>`
-    <div class="report-item" onclick="openDetail(${r.id})">
+    <div class="report-item" onclick="openDetail('${r.id}')">
       <div><div class="report-item-name">${r.name}</div><div class="report-item-date">${r.startDate||'—'} ~ ${r.endDate||'—'}</div></div>
       <div class="report-item-stats">
         <div class="r-stat"><div class="r-stat-val">${fmtW(r.totalSales)}원</div><div class="r-stat-label">총 매출</div></div>
@@ -659,7 +659,7 @@ function showList(){
 }
 
 function openDetail(id){
-  const r=allReports.find(x=>x.id===id);
+  const r=allReports.find(x=>String(x.id)===String(id));
   if(!r) return;
   document.getElementById('listView').style.display='none';
   document.getElementById('detailView').style.display='block';
