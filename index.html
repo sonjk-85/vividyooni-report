@@ -859,11 +859,11 @@ async function initPage() {
       cartRate: r.cart_rate,
       abandonCount: r.abandon_count,
       lostSales: r.lost_sales,
-      dates: r.dates||[],
-      salesArr: r.sales_arr||[],
-      ordersArr: r.orders_arr||[],
-      products: r.products||[],
-      options: r.options||[],
+      dates: typeof r.dates === 'string' ? JSON.parse(r.dates) : (r.dates||[]),
+      salesArr: typeof r.sales_arr === 'string' ? JSON.parse(r.sales_arr) : (r.sales_arr||[]),
+      ordersArr: typeof r.orders_arr === 'string' ? JSON.parse(r.orders_arr) : (r.orders_arr||[]),
+      products: typeof r.products === 'string' ? JSON.parse(r.products) : (r.products||[]),
+      options: typeof r.options === 'string' ? JSON.parse(r.options) : (r.options||[]),
       aiReview: r.ai_review,
       predictSales: r.predict_sales
     }));
