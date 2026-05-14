@@ -641,6 +641,7 @@ function showReportPage(seller){
 function renderList(reports){
   const list=document.getElementById('reportList');
   if(!reports.length){list.innerHTML=`<div style="text-align:center;padding:48px;color:var(--text3);font-size:13px">리포트가 없어요</div>`;return;}
+  const adminMode = !isSellerView;
   list.innerHTML=[...reports].reverse().map(r=>`
     <div class="report-item" onclick="openDetail('${r.id}')">
       <div><div class="report-item-name">${r.name}</div><div class="report-item-date">${r.startDate||'—'} ~ ${r.endDate||'—'}</div></div>
@@ -648,6 +649,7 @@ function renderList(reports){
         <div class="r-stat"><div class="r-stat-val">${fmtW(r.totalSales)}원</div><div class="r-stat-label">총 매출</div></div>
         <div class="r-stat"><div class="r-stat-val">${fmt(r.totalOrders)}명</div><div class="r-stat-label">구매자</div></div>
         <div class="r-stat"><div class="r-stat-val">${r.cvr}%</div><div class="r-stat-label">전환율</div></div>
+        ${adminMode ? `<button onclick="event.stopPropagation();deleteReport('${r.id}')" style="background:none;border:1px solid rgba(255,77,77,0.3);color:#ff4d4d;padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-family:Pretendard,sans-serif;margin-left:8px">삭제</button>` : ''}
         <div style="color:var(--text3);font-size:18px;margin-left:4px">›</div>
       </div>
     </div>`).join('');
@@ -785,6 +787,21 @@ function renderDetail(r){
   document.getElementById('predictVal').textContent=fmtW(predict)+'원';
   document.getElementById('predictDesc').textContent=`이번 대비 +${Math.round((predict/r.totalSales-1)*100)}% 예상`;
   document.getElementById('predictRight').textContent=`이번 공구 데이터 기반으로 TOP 옵션 중심 구성과 공구 전 콘텐츠 노출을 강화하면 다음 차수 추가 성장을 기대할 수 있어요.`;
+}
+
+async function deleteReport(id){
+  if(!confirm('이 리포트를 삭제할까요?')) return;
+  try {
+    await supabaseClient.from('reports').delete().eq('id', id);
+    allReports = allReports.filter(r => String(r.id) !== String(id));
+    localStorage.setItem('sdshop_reports_v2', JSON.stringify(allReports));
+    const seller = allReports.length > 0 ? allReports[0].seller : '';
+    renderList(allReports.filter(r => r.seller === seller));
+    alert('삭제됐어요!');
+  } catch(e) {
+    console.error('삭제 오류:', e);
+    alert('삭제 실패! Supabase에서 직접 지워주세요.');
+  }
 }
 
 function goAdmin(){document.getElementById('reportPage').style.display='none';document.getElementById('adminPanel').style.display='flex'}
