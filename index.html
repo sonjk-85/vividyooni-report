@@ -744,24 +744,46 @@ function renderDetail(r){
     ['수수료율',r.commission||'—'],
     ['피크일',r.dates[peakIdx]?.slice(5)||'—'],
     ['피크일 매출',fmtW(r.salesArr[peakIdx])+'원'],
-    ['TOP 상품',r.topProduct.length>14?r.topProduct.substring(0,14)+'…':r.topProduct],
-    ['상품 종류',r.products.length+'개'],
+    ['TOP 상품',(r.topProduct||'—').length>14?(r.topProduct||'').substring(0,14)+'…':(r.topProduct||'—')],
+    ['상품 종류',(products.length||0)+'개'],
   ].map(([l,v])=>`<div class="stat-row"><span class="stat-label">${l}</span><span class="stat-val">${v}</span></div>`).join('');
 
+  // options/products 정규화 (Supabase에서 올 때 형태가 다를 수 있음)
+  const normalizeOptions = (opts) => {
+    if(!opts||!opts.length) return [];
+    // [name, {sales,qty,orders}] 형태인지 확인
+    if(Array.isArray(opts[0])&&opts[0].length===2&&typeof opts[0][1]==='object') return opts;
+    // [{name,sales,qty,orders}] 형태면 변환
+    if(typeof opts[0]==='object'&&!Array.isArray(opts[0])) {
+      return opts.map(o=>[o[0]||o.name||'기본', o[1]||{sales:o.sales||0,qty:o.qty||0,orders:o.orders||0}]);
+    }
+    return opts;
+  };
+  const normalizeProducts = (prods) => {
+    if(!prods||!prods.length) return [];
+    if(Array.isArray(prods[0])&&prods[0].length===2) return prods;
+    if(typeof prods[0]==='object'&&!Array.isArray(prods[0])) {
+      return prods.map(p=>[p[0]||p.name||'상품', p[1]||p.sales||0]);
+    }
+    return prods;
+  };
+  const options = normalizeOptions(r.options);
+  const products = normalizeProducts(r.products);
+
   // 옵션별
-  if(r.options&&r.options.length>0){
+  if(options&&options.length>0){
     document.getElementById('optionCard').style.display='block';
-    const totalO=r.options.reduce((a,o)=>a+o[1].orders,0);
-    const totalS=r.options.reduce((a,o)=>a+o[1].sales,0);
+    const totalO=options.reduce((a,o)=>a+(o[1].orders||0),0);
+    const totalS=options.reduce((a,o)=>a+(o[1].sales||0),0);
     document.getElementById('optionTotal').textContent='총 '+fmt(totalO)+'건';
     const colors=['#00c97a','#4a9eff','#ff6b9d','#f5a623','#a78bfa','#34d399','#fb923c'];
-    document.getElementById('optionBody').innerHTML=r.options.map((o,i)=>{
-      const sp=Math.round(o[1].sales/totalS*100);
+    document.getElementById('optionBody').innerHTML=options.map((o,i)=>{
+      const sp=totalS>0?Math.round((o[1].sales||0)/totalS*100):0;
       return `<tr>
         <td class="bold" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${o[0]}">${o[0]}</td>
-        <td class="r">${fmt(o[1].orders)}건</td>
-        <td class="r">${fmt(o[1].qty)}개</td>
-        <td class="r bold" style="color:var(--text)">${fmtW(o[1].sales)}원</td>
+        <td class="r">${fmt(o[1].orders||0)}건</td>
+        <td class="r">${fmt(o[1].qty||0)}개</td>
+        <td class="r bold" style="color:var(--text)">${fmtW(o[1].sales||0)}원</td>
         <td class="r" style="color:${colors[i%colors.length]};font-weight:600">${sp}%</td>
         <td><div style="height:4px;background:var(--surface3);border-radius:2px"><div style="height:4px;border-radius:2px;background:${colors[i%colors.length]};width:${sp}%"></div></div></td>
       </tr>`;
@@ -769,13 +791,13 @@ function renderDetail(r){
   } else {document.getElementById('optionCard').style.display='none'}
 
   // 상품별
-  const maxS=r.products[0]?.[1]||1;
-  document.getElementById('productList').innerHTML=r.products.slice(0,6).map((p,i)=>`
+  const maxS=products[0]?products[0][1]||1:1;
+  document.getElementById('productList').innerHTML=products.slice(0,6).map((p,i)=>`
     <div class="product-row">
       <span class="product-rank">${i+1}</span>
       <span class="product-name" title="${p[0]}">${p[0]}</span>
-      <div class="product-bar-wrap"><div class="product-bar-inner" style="width:${Math.round(p[1]/maxS*100)}%;background:#00c97a"></div></div>
-      <span class="product-amt">${fmtW(p[1])}원</span>
+      <div class="product-bar-wrap"><div class="product-bar-inner" style="width:${Math.round((p[1]||0)/maxS*100)}%;background:#00c97a"></div></div>
+      <span class="product-amt">${fmtW(p[1]||0)}원</span>
     </div>`).join('');
 
   // AI 리뷰
