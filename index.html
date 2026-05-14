@@ -395,7 +395,7 @@ const isSellerView = urlPath.includes('/seller/');
 const sellerSlug = isSellerView ? urlPath.split('/seller/')[1]?.replace(/\/$/,'') : null;
 
 let ordersData=null, cartData=null, abandonData=null;
-let allReports = JSON.parse(localStorage.getItem('sdshop_reports_v2')||'[]');
+let allReports = isSellerView ? [] : JSON.parse(localStorage.getItem('sdshop_reports_v2')||'[]');
 let charts={};
 
 // ── 드래그 ──
