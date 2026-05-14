@@ -745,7 +745,7 @@ function renderDetail(r){
     ['피크일',r.dates[peakIdx]?.slice(5)||'—'],
     ['피크일 매출',fmtW(r.salesArr[peakIdx])+'원'],
     ['TOP 상품',(r.topProduct||'—').length>14?(r.topProduct||'').substring(0,14)+'…':(r.topProduct||'—')],
-    ['상품 종류',(products.length||0)+'개'],
+    ['상품 종류',((r.products&&r.products.length)||0)+'개'],
   ].map(([l,v])=>`<div class="stat-row"><span class="stat-label">${l}</span><span class="stat-val">${v}</span></div>`).join('');
 
   // options/products 정규화 (Supabase에서 올 때 형태가 다를 수 있음)
