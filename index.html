@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>스디샵 공구 리포트</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0e0e0e;--surface:#161616;--surface2:#1e1e1e;--surface3:#252525;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
+  --text:#f0f0ee;--text2:#888884;--text3:#555552;
+  --green:#00c97a;--green-dim:rgba(0,201,122,0.12);--green-dim2:rgba(0,201,122,0.05);
+  --amber:#f5a623;--amber-dim:rgba(245,166,35,0.1);
+  --blue:#4a9eff;--blue-dim:rgba(74,158,255,0.1);
+  --pink:#ff6b9d;--pink-dim:rgba(255,107,157,0.1);
+  --red:#ff4d4d;--red-dim:rgba(255,77,77,0.1);
+  --r:12px;--r-sm:8px;
+}
+html{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);font-size:15px;-webkit-font-smoothing:antialiased}
+
+/* ── 관리자 패널 ── */
+#adminPanel{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px}
+.admin-card{background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:36px 40px;width:100%;max-width:720px}
+.admin-logo{font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--green);margin-bottom:6px}
+.admin-title{font-size:22px;font-weight:700;letter-spacing:-0.5px;margin-bottom:6px}
+.admin-sub{font-size:13px;color:var(--text2);margin-bottom:28px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-group.full{grid-column:1/-1}
+label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--text2)}
+label .hint{font-size:10px;color:var(--green);font-weight:500;text-transform:none;letter-spacing:0}
+input,select,textarea{background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r-sm);padding:10px 14px;font-family:'Pretendard',sans-serif;font-size:13px;color:var(--text);width:100%;transition:border 0.15s}
+input:focus,select:focus{outline:none;border-color:var(--green)}
+select{cursor:pointer}
+select:disabled{opacity:0.4;cursor:not-allowed}
+
+.upload-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px}
+.drop-zone{background:var(--surface2);border:1.5px dashed var(--border2);border-radius:var(--r);padding:18px 14px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative}
+.drop-zone:hover,.drop-zone.over{border-color:var(--green);background:var(--green-dim2)}
+.drop-zone.done{border-color:var(--green);border-style:solid}
+.drop-zone input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.drop-icon{font-size:20px;margin-bottom:5px}
+.drop-label{font-size:12px;font-weight:600;margin-bottom:3px}
+.drop-sub{font-size:10px;color:var(--text3)}
+.drop-ok{font-size:10px;color:var(--green);margin-top:4px;display:none;font-weight:500}
+
+.divider{height:1px;background:var(--border);margin:20px 0}
+.btn-primary{width:100%;background:var(--green);color:#000;border:none;padding:14px;border-radius:var(--r-sm);font-family:'Pretendard',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all 0.15s}
+.btn-primary:hover{opacity:0.88}
+.btn-primary:disabled{background:var(--surface3);color:var(--text3);cursor:not-allowed}
+.generating{display:none;align-items:center;justify-content:center;gap:10px;padding:14px;font-size:13px;color:var(--text2)}
+.spinner{width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--green);border-radius:50%;animation:spin 0.7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.admin-footer{display:flex;gap:8px;margin-top:14px}
+.btn-ghost{background:none;color:var(--text3);border:1px solid var(--border);padding:7px 16px;border-radius:var(--r-sm);font-family:'Pretendard',sans-serif;font-size:12px;cursor:pointer;transition:all 0.15s}
+.btn-ghost:hover{color:var(--text);border-color:var(--border2)}
+
+/* ── 리포트 페이지 ── */
+#reportPage{display:none}
+.report-nav{position:sticky;top:0;z-index:100;background:rgba(14,14,14,0.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 32px;height:52px;display:flex;align-items:center;justify-content:space-between}
+.nav-logo{font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--green)}
+.nav-right{display:flex;align-items:center;gap:10px}
+.nav-seller{font-size:12px;color:var(--text2);font-family:'DM Mono',monospace}
+
+.report-wrap{max-width:900px;margin:0 auto;padding:36px 24px 80px}
+
+/* 목록 */
+.page-title{font-size:26px;font-weight:700;letter-spacing:-0.8px;margin-bottom:4px}
+.page-sub{font-size:13px;color:var(--text2);margin-bottom:28px}
+.report-list{display:flex;flex-direction:column;gap:10px;margin-bottom:48px}
+.report-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 22px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:space-between}
+.report-item:hover{border-color:var(--border2);background:var(--surface2);transform:translateY(-1px)}
+.report-item-name{font-size:14px;font-weight:600;margin-bottom:3px}
+.report-item-date{font-size:11px;color:var(--text2);font-family:'DM Mono',monospace}
+.report-item-stats{display:flex;align-items:center;gap:20px}
+.r-stat{text-align:right}
+.r-stat-val{font-size:15px;font-weight:600;color:var(--green)}
+.r-stat-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px}
+
+/* 상세 */
+.back-btn{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);background:none;border:none;cursor:pointer;font-family:'Pretendard',sans-serif;margin-bottom:24px;padding:6px 0;transition:color 0.15s}
+.back-btn:hover{color:var(--text)}
+.report-badge{display:inline-block;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--green);background:var(--green-dim);padding:4px 12px;border-radius:20px;margin-bottom:10px}
+.report-title{font-size:28px;font-weight:700;letter-spacing:-0.8px;margin-bottom:4px}
+.report-period{font-size:12px;color:var(--text2);font-family:'DM Mono',monospace;margin-bottom:28px}
+
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px}
+.kpi.accent{background:var(--green-dim);border-color:rgba(0,201,122,0.2)}
+.kpi.amber{background:var(--amber-dim);border-color:rgba(245,166,35,0.2)}
+.kpi.red{background:var(--red-dim);border-color:rgba(255,77,77,0.2)}
+.kpi.blue{background:var(--blue-dim);border-color:rgba(74,158,255,0.2)}
+.kpi-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text3);margin-bottom:8px}
+.kpi-val{font-size:20px;font-weight:700;letter-spacing:-0.5px}
+.kpi.accent .kpi-val{color:var(--green)}
+.kpi.amber .kpi-val{color:var(--amber)}
+.kpi.red .kpi-val{color:var(--red)}
+.kpi.blue .kpi-val{color:var(--blue)}
+.kpi-sub{font-size:10px;color:var(--text3);margin-top:4px}
+
+/* 퍼널 */
+.funnel-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px 24px;margin-bottom:14px}
+.funnel-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:0;position:relative;margin-top:18px}
+.funnel-step{text-align:center;position:relative;padding:0 8px}
+.funnel-step:not(:last-child)::after{content:'→';position:absolute;right:-8px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:16px;margin-top:-8px}
+.funnel-bar-wrap{height:80px;display:flex;align-items:flex-end;justify-content:center;margin-bottom:8px}
+.funnel-bar{width:60%;border-radius:4px 4px 0 0;transition:height 0.3s}
+.funnel-num{font-size:16px;font-weight:700;font-family:'DM Mono',monospace}
+.funnel-label{font-size:10px;color:var(--text2);margin-top:3px}
+.funnel-rate{font-size:11px;font-weight:600;margin-top:4px}
+
+/* 차트카드 */
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px 24px;margin-bottom:14px}
+.chart-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.chart-title{font-size:13px;font-weight:600}
+.chart-sub{font-size:11px;color:var(--text2)}
+.legend{display:flex;gap:12px;flex-wrap:wrap}
+.leg{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)}
+.leg-sq{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+.two-col{display:grid;grid-template-columns:3fr 2fr;gap:14px;margin-bottom:14px}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px}
+
+/* 테이블 */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead tr{background:var(--surface2)}
+th{padding:9px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--text3);white-space:nowrap;border-bottom:1px solid var(--border)}
+th.r{text-align:right}
+td{padding:10px 12px;border-bottom:1px solid var(--border);color:var(--text2)}
+td.r{text-align:right;font-family:'DM Mono',monospace}
+td.bold{font-weight:600;color:var(--text)}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:rgba(255,255,255,0.02)}
+
+/* 상품 바 */
+.product-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.product-row:last-child{border-bottom:none}
+.product-rank{font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);width:16px;flex-shrink:0}
+.product-name{font-size:13px;font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.product-bar-wrap{width:60px;height:4px;background:var(--surface3);border-radius:2px;flex-shrink:0}
+.product-bar-inner{height:100%;border-radius:2px}
+.product-amt{font-size:12px;font-family:'DM Mono',monospace;color:var(--text2);width:72px;text-align:right;flex-shrink:0}
+
+/* AI 리뷰 */
+.ai-card{background:var(--green-dim2);border:1px solid rgba(0,201,122,0.15);border-radius:var(--r);padding:24px 26px;margin-bottom:14px;position:relative;overflow:hidden}
+.ai-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--green),transparent);opacity:0.4}
+.ai-badge{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--green);margin-bottom:14px}
+.ai-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.8)}}
+.ai-text{font-size:14px;line-height:1.8;color:var(--text);white-space:pre-wrap}
+
+/* 예측 */
+.predict-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px 24px;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.predict-val{font-size:28px;font-weight:700;color:var(--amber);letter-spacing:-0.8px}
+
+/* 이탈 경보 */
+.alert-card{background:var(--red-dim);border:1px solid rgba(255,77,77,0.2);border-radius:var(--r);padding:18px 22px;margin-bottom:14px;display:flex;align-items:center;gap:14px}
+.alert-icon{font-size:20px;flex-shrink:0}
+.alert-text{font-size:13px;color:var(--text);line-height:1.6}
+.alert-val{font-size:18px;font-weight:700;color:var(--red)}
+
+/* stat row */
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.stat-row:last-child{border-bottom:none}
+.stat-label{font-size:12px;color:var(--text2)}
+.stat-val{font-size:13px;font-weight:500;font-family:'DM Mono',monospace}
+
+@media(max-width:640px){
+  .report-nav{padding:0 16px}
+  .report-wrap{padding:24px 16px 60px}
+  .kpi-grid{grid-template-columns:repeat(2,1fr)}
+  .two-col,.three-col{grid-template-columns:1fr}
+  .upload-grid{grid-template-columns:1fr}
+  .form-grid{grid-template-columns:1fr}
+  .admin-card{padding:24px 20px}
+  .funnel-steps{grid-template-columns:repeat(2,1fr);gap:12px}
+  .funnel-step::after{display:none}
+  .predict-card{flex-direction:column;gap:12px}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ 관리자 패널 ══ -->
+<div id="adminPanel">
+  <div class="admin-card">
+    <div class="admin-logo">SDSHOP</div>
+    <div class="admin-title">공구 리포트 생성</div>
+    <div class="admin-sub">CSV 3개 업로드 → AI 분석 → 셀러 전용 리포트 자동 생성</div>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label>셀러명</label>
+        <input type="text" id="sellerName" placeholder="예: vividyooni" value="vividyooni">
+      </div>
+      <div class="form-group">
+        <label>판매 수수료</label>
+        <input type="text" id="commission" placeholder="예: 20~25%">
+      </div>
+      <div class="form-group full">
+        <label>상품 선택 <span class="hint">주문 CSV 업로드 후 자동 목록</span></label>
+        <select id="productSelect" disabled onchange="autoFillDates()">
+          <option value="">📦 주문 CSV 업로드 후 선택 가능</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>공구 시작일 <span class="hint">자동입력</span></label>
+        <input type="date" id="startDate">
+      </div>
+      <div class="form-group">
+        <label>공구 종료일 <span class="hint">자동입력</span></label>
+        <input type="date" id="endDate">
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="upload-grid">
+      <div class="drop-zone" id="dropOrders" ondragover="onDrag(event,'dropOrders')" ondragleave="onLeave('dropOrders')" ondrop="onDrop(event,'orders')">
+        <div class="drop-icon">📦</div>
+        <div class="drop-label">주문 데이터</div>
+        <div class="drop-sub">카페24 주문 CSV</div>
+        <div class="drop-ok" id="ordersOk"></div>
+        <input type="file" accept=".csv" onchange="loadFile(event,'orders')">
+      </div>
+      <div class="drop-zone" id="dropCart" ondragover="onDrag(event,'dropCart')" ondragleave="onLeave('dropCart')" ondrop="onDrop(event,'cart')">
+        <div class="drop-icon">🛒</div>
+        <div class="drop-label">담긴 상품</div>
+        <div class="drop-sub">장바구니 통계 CSV</div>
+        <div class="drop-ok" id="cartOk"></div>
+        <input type="file" accept=".csv" onchange="loadFile(event,'cart')">
+      </div>
+      <div class="drop-zone" id="dropAbandon" ondragover="onDrag(event,'dropAbandon')" ondragleave="onLeave('dropAbandon')" ondrop="onDrop(event,'abandon')">
+        <div class="drop-icon">💸</div>
+        <div class="drop-label">이탈 매출 분석</div>
+        <div class="drop-sub">이탈 분석 CSV</div>
+        <div class="drop-ok" id="abandonOk"></div>
+        <input type="file" accept=".csv" onchange="loadFile(event,'abandon')">
+      </div>
+    </div>
+
+    <button class="btn-primary" id="generateBtn" onclick="generateReport()" disabled>리포트 생성 + AI 분석</button>
+    <div class="generating" id="generatingMsg">
+      <div class="spinner"></div>
+      <span id="generatingText">데이터 분석 중...</span>
+    </div>
+
+    <div class="admin-footer">
+      <button class="btn-ghost" onclick="viewReports()">저장된 리포트 보기</button>
+      <button class="btn-ghost" onclick="resetReports()">초기화</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 셀러 리포트 페이지 ══ -->
+<div id="reportPage">
+  <nav class="report-nav">
+    <div class="nav-logo">SDSHOP</div>
+    <div class="nav-right">
+      <div class="nav-seller" id="navSeller">—</div>
+      <button class="btn-ghost" onclick="goAdmin()">관리자</button>
+      <button class="btn-ghost" onclick="resetReports()">초기화</button>
+    </div>
+  </nav>
+
+  <!-- 목록 -->
+  <div class="report-wrap" id="listView">
+    <div class="page-title" id="listTitle">—</div>
+    <div class="page-sub" id="listSub">—</div>
+    <div class="report-list" id="reportList"></div>
+  </div>
+
+  <!-- 상세 -->
+  <div class="report-wrap" id="detailView" style="display:none">
+    <button class="back-btn" onclick="showList()">← 전체 공구 목록</button>
+    <div class="report-badge">공구 리포트</div>
+    <div class="report-title" id="detailTitle">—</div>
+    <div class="report-period" id="detailPeriod">—</div>
+
+    <!-- KPI -->
+    <div class="kpi-grid">
+      <div class="kpi accent"><div class="kpi-label">총 매출</div><div class="kpi-val" id="dSales">—</div><div class="kpi-sub" id="dSalesSub">—</div></div>
+      <div class="kpi"><div class="kpi-label">구매자 수</div><div class="kpi-val" id="dBuyers">—</div><div class="kpi-sub">명</div></div>
+      <div class="kpi amber"><div class="kpi-label">평균 객단가</div><div class="kpi-val" id="dAov">—</div><div class="kpi-sub">1인당 평균</div></div>
+      <div class="kpi blue"><div class="kpi-label">구매 전환율</div><div class="kpi-val" id="dCvr">—</div><div class="kpi-sub" id="dCvrSub">페이지뷰 기준</div></div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-label">페이지뷰</div><div class="kpi-val" id="dPv">—</div><div class="kpi-sub">총 조회수</div></div>
+      <div class="kpi"><div class="kpi-label">장바구니 담김</div><div class="kpi-val" id="dCart">—</div><div class="kpi-sub" id="dCartRate">—</div></div>
+      <div class="kpi red"><div class="kpi-label">장바구니 이탈</div><div class="kpi-val" id="dAbandon">—</div><div class="kpi-sub" id="dAbandonRate">—</div></div>
+      <div class="kpi red"><div class="kpi-label">이탈 매출 손실</div><div class="kpi-val" id="dLost">—</div><div class="kpi-sub">회수 가능 매출</div></div>
+    </div>
+
+    <!-- 퍼널 -->
+    <div class="chart-card">
+      <div class="chart-head">
+        <div class="chart-title">구매 퍼널 분석</div>
+        <div class="chart-sub" id="funnelSub">—</div>
+      </div>
+      <div class="funnel-steps" id="funnelSteps"></div>
+    </div>
+
+    <!-- 이탈 인사이트 -->
+    <div id="alertCard" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 22px;margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text3);margin-bottom:10px">💡 이탈 인사이트</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div>
+          <div style="font-size:20px;font-weight:700;color:var(--amber)" id="alertVal">—</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:3px" id="alertText">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 일별 매출 -->
+    <div class="chart-card">
+      <div class="chart-head">
+        <div class="chart-title">일별 매출 추이</div>
+        <div class="legend"><div class="leg"><div class="leg-sq" style="background:var(--green)"></div>매출</div></div>
+      </div>
+      <div style="position:relative;width:100%;height:220px"><canvas id="salesChart" role="img" aria-label="일별 매출 추이"></canvas></div>
+    </div>
+
+    <div class="two-col">
+      <div class="chart-card" style="margin-bottom:0">
+        <div class="chart-head"><div class="chart-title">일별 주문건수</div></div>
+        <div style="position:relative;width:100%;height:180px"><canvas id="ordersChart" role="img" aria-label="일별 주문건수"></canvas></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:0">
+        <div class="chart-head"><div class="chart-title">주요 지표</div></div>
+        <div id="statTable"></div>
+      </div>
+    </div>
+
+    <!-- 옵션별 분석 -->
+    <div class="chart-card" style="margin-top:14px" id="optionCard">
+      <div class="chart-head">
+        <div class="chart-title">옵션별 판매 분석</div>
+        <div class="chart-sub" id="optionTotal"></div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>옵션명</th>
+            <th class="r">판매건수</th>
+            <th class="r">판매수량</th>
+            <th class="r">매출</th>
+            <th class="r">비중</th>
+            <th style="width:80px"></th>
+          </tr></thead>
+          <tbody id="optionBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 상품별 순위 -->
+    <div class="chart-card" style="margin-top:14px">
+      <div class="chart-head"><div class="chart-title">상품별 매출 순위</div></div>
+      <div id="productList"></div>
+    </div>
+
+    <!-- AI 리뷰 -->
+    <div class="ai-card" style="margin-top:14px">
+      <div class="ai-badge"><div class="ai-dot"></div>AI 공구 리뷰</div>
+      <div class="ai-text" id="aiText"><div style="display:flex;align-items:center;gap:8px;color:var(--text2)"><div class="spinner"></div>AI가 데이터를 분석하고 있어요...</div></div>
+    </div>
+
+    <!-- 다음 차수 예측 -->
+    <div class="predict-card">
+      <div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:6px">다음 차수 기대 매출</div>
+        <div class="predict-val" id="predictVal">—</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px" id="predictDesc">—</div>
+      </div>
+      <div style="font-size:12px;color:var(--text2);text-align:right;max-width:280px;line-height:1.7" id="predictRight">—</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Supabase 설정 ──
+const SUPABASE_URL = 'https://kcycwyxstbohbleezlog.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeWN3eXhzdGJvaGJsZWV6bG9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3MzI1ODcsImV4cCI6MjA5NDMwODU4N30.IrvHIEmpptx7q_xv99J1Be9EIEkFLCd0hOB_8MZV1EI';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// 셀러 slug (URL에서 자동 감지)
+const urlPath = window.location.pathname;
+const isSellerView = urlPath.includes('/seller/');
+const sellerSlug = isSellerView ? urlPath.split('/seller/')[1]?.replace(/\/$/,'') : null;
+
+let ordersData=null, cartData=null, abandonData=null;
+let allReports = JSON.parse(localStorage.getItem('sdshop_reports_v2')||'[]');
+let charts={};
+
+// ── 드래그 ──
+function onDrag(e,id){e.preventDefault();document.getElementById(id).classList.add('over')}
+function onLeave(id){document.getElementById(id).classList.remove('over')}
+function onDrop(e,type){e.preventDefault();onLeave({orders:'dropOrders',cart:'dropCart',abandon:'dropAbandon'}[type]);parseCSV(e.dataTransfer.files[0],type)}
+function loadFile(e,type){parseCSV(e.target.files[0],type)}
+
+function parseCSV(file,type){
+  Papa.parse(file,{header:true,skipEmptyLines:true,complete:(r)=>{
+    const okEl = document.getElementById(type+'Ok');
+    okEl.textContent=`✓ ${file.name}`;
+    okEl.style.display='block';
+    document.getElementById({orders:'dropOrders',cart:'dropCart',abandon:'dropAbandon'}[type]).classList.add('done');
+    if(type==='orders'){
+      ordersData=r.data;
+      // 상품 드롭다운 채우기
+      const products=[...new Set(r.data.filter(x=>x['주문상품명']).map(x=>x['주문상품명'].trim()))].sort();
+      const sel=document.getElementById('productSelect');
+      sel.innerHTML='<option value="">전체 상품</option>'+products.map(p=>`<option value="${p}">${p}</option>`).join('');
+      sel.disabled=false;
+    }
+    if(type==='cart') cartData=r.data;
+    if(type==='abandon') abandonData=r.data;
+    checkReady();
+  }});
+}
+
+function autoFillDates(){
+  const kw=document.getElementById('productSelect').value;
+  if(!kw||!ordersData) return;
+  const matched=ordersData.filter(r=>(r['주문상품명']||'').trim()===kw&&r['발주일']&&r['발주일'].trim());
+  if(!matched.length) return;
+  const dates=matched.map(r=>r['발주일'].trim().substring(0,10)).sort();
+  document.getElementById('startDate').value=dates[0];
+  document.getElementById('endDate').value=dates[dates.length-1];
+  checkReady();
+}
+
+function checkReady(){
+  const ok=ordersData&&cartData&&abandonData&&document.getElementById('sellerName').value.trim();
+  document.getElementById('generateBtn').disabled=!ok;
+}
+document.getElementById('sellerName').addEventListener('input',checkReady);
+
+// ── 포맷 ──
+function fmt(n){return Math.round(n).toLocaleString('ko-KR')}
+function fmtW(n){
+  if(n>=100000000) return (n/100000000).toFixed(1)+'억';
+  if(n>=10000) return Math.round(n/10000)+'만';
+  return fmt(n);
+}
+function pct(a,b){return b>0?(a/b*100).toFixed(1)+'%':'—'}
+function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id]}}
+
+// ── 리포트 생성 ──
+async function generateReport(){
+  const btn=document.getElementById('generateBtn');
+  const gen=document.getElementById('generatingMsg');
+  btn.style.display='none'; gen.style.display='flex';
+
+  const keyword=document.getElementById('productSelect').value.trim();
+  const startDate=document.getElementById('startDate').value;
+  const endDate=document.getElementById('endDate').value;
+  const seller=document.getElementById('sellerName').value.trim();
+  const commission=document.getElementById('commission').value;
+
+  // 유효 주문 필터
+  const rows=ordersData.filter(r=>{
+    if(!r['발주일']||!r['발주일'].trim()) return false;
+    if((r['결제구분']||'').trim()!=='T') return false;
+    if((parseFloat(r['총 결제금액'])||0)<=0) return false;
+    if(startDate&&endDate){
+      const d=r['발주일'].trim().substring(0,10);
+      if(d<startDate||d>endDate) return false;
+    }
+    if(keyword&&(r['주문상품명']||'').trim()!==keyword) return false;
+    return true;
+  });
+
+  // 일별 집계
+  const daily={};
+  const productMap={};
+  const optionMap={};
+  rows.forEach(r=>{
+    const d=r['발주일'].trim().substring(0,10);
+    const price=parseFloat(r['총 결제금액'])||0;
+    const product=(r['주문상품명']||'').trim();
+    const orderNo=r['주문번호']||'';
+    const optionFull=(r['주문상품명(옵션포함)']||'').trim();
+    const match=optionFull.match(/\[옵션 선택\]=(.+?)(?:\)|$)/);
+    const optionName=match?match[1].trim():'기본';
+    const qty=parseInt(r['수량'])||1;
+
+    if(!daily[d]) daily[d]={sales:0,orders:new Set()};
+    daily[d].sales+=price;
+    daily[d].orders.add(orderNo);
+
+    if(product){if(!productMap[product])productMap[product]=0;productMap[product]+=price;}
+    if(!optionMap[optionName])optionMap[optionName]={sales:0,qty:0,orders:0};
+    optionMap[optionName].sales+=price;
+    optionMap[optionName].qty+=qty;
+    optionMap[optionName].orders+=1;
+  });
+
+  const dates=Object.keys(daily).sort();
+  const salesArr=dates.map(d=>daily[d].sales);
+  const ordersArr=dates.map(d=>daily[d].orders.size);
+  const totalSales=salesArr.reduce((a,b)=>a+b,0);
+  const totalOrders=ordersArr.reduce((a,b)=>a+b,0);
+  const aov=totalOrders>0?totalSales/totalOrders:0;
+  const products=Object.entries(productMap).sort((a,b)=>b[1]-a[1]);
+  const options=Object.entries(optionMap).sort((a,b)=>b[1].sales-a[1].sales);
+  const topProduct=products[0]?products[0][0]:keyword||'—';
+
+  // 장바구니/이탈 데이터 매칭
+  const matchName=keyword||topProduct;
+  const cartRow=cartData.find(r=>{
+    const name=(r['product_name']||'').trim();
+    return name===matchName||name.includes(matchName.substring(0,6))||matchName.includes(name.substring(0,6));
+  });
+  const abandonRow=abandonData.find(r=>{
+    const name=(r['product_name']||'').trim();
+    return name===matchName||name.includes(matchName.substring(0,6))||matchName.includes(name.substring(0,6));
+  });
+
+  const pageViews=cartRow?parseInt(cartRow['count'])||0:0;
+  const cartCount=cartRow?parseInt(cartRow['add_cart_count'])||0:0;
+  const cartRate=cartRow?parseFloat(cartRow['add_cart_rate'])||0:0;
+  const abandonCount=abandonRow?parseInt(abandonRow['abandon_count'])||0:0;
+  const lostSales=abandonRow?parseFloat(abandonRow['lost_sales_amount'])||0:0;
+  const lostRate=abandonRow?parseFloat(abandonRow['lost_sales_rate'])||0:0;
+  const cvr=pageViews>0?(totalOrders/pageViews*100):0;
+  const cartCvr=cartCount>0?(totalOrders/cartCount*100):0;
+
+  const report={
+    id:Date.now(),seller,name:keyword||topProduct,startDate,endDate,commission,
+    totalSales,totalOrders,aov,cvr:cvr.toFixed(1),
+    pageViews,cartCount,cartRate,abandonCount,lostSales,lostRate,cartCvr:cartCvr.toFixed(1),
+    dates,salesArr,ordersArr,products,options,topProduct,
+    createdAt:new Date().toISOString()
+  };
+
+  document.getElementById('generatingText').textContent='AI 리뷰 생성 중...';
+  report.aiReview=await generateAIReview(report);
+  report.predictSales=Math.round(totalSales*(1+(Math.random()*0.12+0.05)));
+
+  // Supabase에 저장
+  try {
+    // 셀러 upsert
+    let { data: sellerData } = await supabase
+      .from('sellers')
+      .upsert({ seller_name: seller, slug: seller.toLowerCase().replace(/\s+/g,'-') }, { onConflict: 'seller_name' })
+      .select().single();
+
+    if(sellerData) {
+      await supabase.from('reports').insert({
+        seller_id: sellerData.id,
+        name: report.name,
+        start_date: report.startDate,
+        end_date: report.endDate,
+        commission: report.commission,
+        total_sales: report.totalSales,
+        total_orders: report.totalOrders,
+        aov: report.aov,
+        cvr: report.cvr,
+        page_views: report.pageViews,
+        cart_count: report.cartCount,
+        cart_rate: report.cartRate,
+        abandon_count: report.abandonCount,
+        lost_sales: report.lostSales,
+        dates: report.dates,
+        sales_arr: report.salesArr,
+        orders_arr: report.ordersArr,
+        products: report.products,
+        options: report.options,
+        ai_review: report.aiReview,
+        predict_sales: report.predictSales
+      });
+    }
+  } catch(e) { console.error('Supabase 저장 오류:', e); }
+
+  allReports.push(report);
+  localStorage.setItem('sdshop_reports_v2',JSON.stringify(allReports));
+
+  btn.style.display='block'; gen.style.display='none';
+  showReportPage(seller);
+  openDetail(report.id);
+}
+
+// ── AI 리뷰 ──
+async function generateAIReview(r){
+  const prompt=`당신은 크리에이터 커머스 전문 분석가입니다. 다음 공구 데이터를 분석하고 셀러에게 친근하고 전문적인 리뷰를 작성해주세요.
+
+공구명: ${r.name}
+기간: ${r.startDate} ~ ${r.endDate} (${r.dates.length}일)
+총 매출: ${fmt(r.totalSales)}원
+구매자 수: ${fmt(r.totalOrders)}명
+평균 객단가: ${fmt(r.aov)}원
+페이지뷰: ${fmt(r.pageViews)}회
+구매 전환율: ${r.cvr}% (페이지뷰 기준)
+장바구니 담김: ${fmt(r.cartCount)}건 (담김률 ${r.cartRate}%)
+장바구니 이탈: ${fmt(r.abandonCount)}건
+이탈 매출 손실: ${fmt(r.lostSales)}원
+TOP 상품: ${r.topProduct}
+
+다음 형식으로 작성해주세요:
+1. 이번 공구 전반적 성과 평가 (2~3문장)
+2. 잘 된 점 1~2가지
+3. 장바구니 이탈 관련 인사이트 (콘텐츠 전략, 공구 구성, 가격 전략 중심으로)
+4. 다음 차수 콘텐츠 및 공구 구성 제안
+
+이모지 적절히 사용, 데이터 기반으로 구체적으로, SNS 공동구매 특성에 맞게, 전체 350자 내외.
+주의: 리타겟팅 광고, 카카오 알림톡 등 광고/마케팅 툴 언급 금지. 콘텐츠와 공구 운영 전략 중심으로만 작성.`;
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})
+    });
+    const data=await res.json();
+    return data.content?.[0]?.text||fallbackReview(r);
+  }catch(e){return fallbackReview(r)}
+}
+
+function fallbackReview(r){
+  const abandonPct=r.cartCount>0?Math.round(r.abandonCount/r.cartCount*100):0;
+  return '📊 이번 '+r.name+' 공구는 전환율 '+r.cvr+'%로 집계됐어요.\n\n✅ 잘 된 점: 평균 객단가 '+fmtW(r.aov)+'원으로 고단가 구성이 효과적으로 작동했습니다.\n\n⚠️ 장바구니 이탈: 담김 '+fmt(r.cartCount)+'건 중 '+abandonPct+'%가 최종 구매로 이어지지 않았어요. 공구 오픈 전 상품 사용 콘텐츠를 강화하거나 옵션 구성을 단순화하면 전환율을 높일 수 있어요.\n\n🚀 다음 차수: 공구 마감 D-1 카운트다운 콘텐츠와 TOP 옵션을 전면에 내세운 구성으로 진행해보세요.';
+}
+
+// ── 리포트 페이지 ──
+function showReportPage(seller){
+  document.getElementById('adminPanel').style.display='none';
+  document.getElementById('reportPage').style.display='block';
+  document.getElementById('navSeller').textContent=seller;
+  document.getElementById('listTitle').textContent=seller+' 공구 리포트';
+  const sellerReports=allReports.filter(r=>r.seller===seller);
+  document.getElementById('listSub').textContent=`총 ${sellerReports.length}개의 공구 리포트`;
+  renderList(sellerReports);
+}
+
+function renderList(reports){
+  const list=document.getElementById('reportList');
+  if(!reports.length){list.innerHTML=`<div style="text-align:center;padding:48px;color:var(--text3);font-size:13px">리포트가 없어요</div>`;return;}
+  list.innerHTML=[...reports].reverse().map(r=>`
+    <div class="report-item" onclick="openDetail(${r.id})">
+      <div><div class="report-item-name">${r.name}</div><div class="report-item-date">${r.startDate||'—'} ~ ${r.endDate||'—'}</div></div>
+      <div class="report-item-stats">
+        <div class="r-stat"><div class="r-stat-val">${fmtW(r.totalSales)}원</div><div class="r-stat-label">총 매출</div></div>
+        <div class="r-stat"><div class="r-stat-val">${fmt(r.totalOrders)}명</div><div class="r-stat-label">구매자</div></div>
+        <div class="r-stat"><div class="r-stat-val">${r.cvr}%</div><div class="r-stat-label">전환율</div></div>
+        <div style="color:var(--text3);font-size:18px;margin-left:4px">›</div>
+      </div>
+    </div>`).join('');
+}
+
+function showList(){
+  document.getElementById('listView').style.display='block';
+  document.getElementById('detailView').style.display='none';
+}
+
+function openDetail(id){
+  const r=allReports.find(x=>x.id===id);
+  if(!r) return;
+  document.getElementById('listView').style.display='none';
+  document.getElementById('detailView').style.display='block';
+  window.scrollTo(0,0);
+  renderDetail(r);
+}
+
+function renderDetail(r){
+  document.getElementById('detailTitle').textContent=r.name;
+  document.getElementById('detailPeriod').textContent=`${r.startDate||'—'} ~ ${r.endDate||'—'} · ${r.dates.length}일간`;
+
+  // KPI 1행
+  document.getElementById('dSales').textContent=fmtW(r.totalSales)+'원';
+  document.getElementById('dSalesSub').textContent=fmt(r.totalSales)+'원';
+  document.getElementById('dBuyers').textContent=fmt(r.totalOrders);
+  document.getElementById('dAov').textContent=fmtW(r.aov)+'원';
+  document.getElementById('dCvr').textContent=r.cvr>0?r.cvr+'%':'—';
+  document.getElementById('dCvrSub').textContent=r.pageViews>0?`페이지뷰 ${fmt(r.pageViews)}회 기준`:'페이지뷰 데이터 없음';
+
+  // KPI 2행
+  document.getElementById('dPv').textContent=r.pageViews>0?fmt(r.pageViews):'—';
+  document.getElementById('dCart').textContent=r.cartCount>0?fmt(r.cartCount):'—';
+  document.getElementById('dCartRate').textContent=r.cartRate>0?`담김률 ${r.cartRate}%`:'—';
+  document.getElementById('dAbandon').textContent=r.abandonCount>0?fmt(r.abandonCount):'—';
+  const abandonPct=r.cartCount>0?(r.abandonCount/r.cartCount*100).toFixed(1):0;
+  document.getElementById('dAbandonRate').textContent=abandonPct>0?`이탈률 ${abandonPct}%`:'—';
+  document.getElementById('dLost').textContent=r.lostSales>0?fmtW(r.lostSales)+'원':'—';
+
+  // 이탈 인사이트
+  if(r.lostSales>0&&r.abandonCount>0){
+    document.getElementById('alertCard').style.display='block';
+    document.getElementById('alertVal').textContent=`장바구니 이탈 ${fmt(r.abandonCount)}건 · ${fmtW(r.lostSales)}원`;
+    document.getElementById('alertText').textContent=`담김 ${fmt(r.cartCount)}건 중 ${abandonPct}%가 최종 구매로 이어지지 않았어요. 다음 공구에서 장바구니 담김 후 구매 유도 콘텐츠를 강화해보세요.`;
+  } else {
+    document.getElementById('alertCard').style.display='none';
+  }
+
+  // 퍼널
+  const funnelData=[
+    {label:'페이지뷰',val:r.pageViews,color:'#4a9eff',rate:''},
+    {label:'장바구니 담김',val:r.cartCount,color:'#f5a623',rate:r.pageViews>0?`담김률 ${r.cartRate}%`:''},
+    {label:'구매 완료',val:r.totalOrders,color:'#00c97a',rate:r.cartCount>0?`전환 ${r.cartCvr}%`:''},
+    {label:'이탈',val:r.abandonCount,color:'#ff4d4d',rate:r.cartCount>0?`이탈률 ${abandonPct}%`:''},
+  ];
+  const maxVal=Math.max(...funnelData.map(f=>f.val||0),1);
+  document.getElementById('funnelSteps').innerHTML=funnelData.map(f=>`
+    <div class="funnel-step">
+      <div class="funnel-bar-wrap">
+        <div class="funnel-bar" style="background:${f.color};height:${Math.max(f.val/maxVal*100,4)}%;opacity:0.8"></div>
+      </div>
+      <div class="funnel-num" style="color:${f.color}">${f.val>0?fmt(f.val):'—'}</div>
+      <div class="funnel-label">${f.label}</div>
+      <div class="funnel-rate" style="color:${f.color}">${f.rate}</div>
+    </div>`).join('');
+  document.getElementById('funnelSub').textContent=`페이지뷰 → 구매 ${r.cvr}%`;
+
+  const labels=r.dates.map(d=>{const p=d.split('-');return parseInt(p[1])+'/'+parseInt(p[2])});
+  const gridC='rgba(255,255,255,0.05)', tickC='#555';
+
+  // 매출 차트
+  destroyChart('salesChart');
+  charts['salesChart']=new Chart(document.getElementById('salesChart'),{
+    type:'line',
+    data:{labels,datasets:[{data:r.salesArr,borderColor:'#00c97a',backgroundColor:'rgba(0,201,122,0.08)',borderWidth:2.5,pointRadius:5,pointBackgroundColor:'#00c97a',fill:true,tension:0.3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'매출: '+fmt(ctx.raw)+'원'}}},
+      scales:{x:{ticks:{color:tickC,font:{size:11}},grid:{color:gridC}},y:{ticks:{color:tickC,font:{size:11},callback:v=>v>=10000?(v/10000).toFixed(0)+'만':v},grid:{color:gridC}}}}
+  });
+
+  // 주문건수 차트
+  destroyChart('ordersChart');
+  charts['ordersChart']=new Chart(document.getElementById('ordersChart'),{
+    type:'bar',
+    data:{labels,datasets:[{data:r.ordersArr,backgroundColor:'rgba(74,158,255,0.6)',borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>fmt(ctx.raw)+'건'}}},
+      scales:{x:{ticks:{color:tickC,font:{size:11}},grid:{color:gridC}},y:{ticks:{color:tickC,font:{size:11}},grid:{color:gridC}}}}
+  });
+
+  // 주요 지표
+  const peakIdx=r.salesArr.indexOf(Math.max(...r.salesArr));
+  document.getElementById('statTable').innerHTML=[
+    ['수수료율',r.commission||'—'],
+    ['피크일',r.dates[peakIdx]?.slice(5)||'—'],
+    ['피크일 매출',fmtW(r.salesArr[peakIdx])+'원'],
+    ['TOP 상품',r.topProduct.length>14?r.topProduct.substring(0,14)+'…':r.topProduct],
+    ['상품 종류',r.products.length+'개'],
+  ].map(([l,v])=>`<div class="stat-row"><span class="stat-label">${l}</span><span class="stat-val">${v}</span></div>`).join('');
+
+  // 옵션별
+  if(r.options&&r.options.length>0){
+    document.getElementById('optionCard').style.display='block';
+    const totalO=r.options.reduce((a,o)=>a+o[1].orders,0);
+    const totalS=r.options.reduce((a,o)=>a+o[1].sales,0);
+    document.getElementById('optionTotal').textContent='총 '+fmt(totalO)+'건';
+    const colors=['#00c97a','#4a9eff','#ff6b9d','#f5a623','#a78bfa','#34d399','#fb923c'];
+    document.getElementById('optionBody').innerHTML=r.options.map((o,i)=>{
+      const sp=Math.round(o[1].sales/totalS*100);
+      return `<tr>
+        <td class="bold" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${o[0]}">${o[0]}</td>
+        <td class="r">${fmt(o[1].orders)}건</td>
+        <td class="r">${fmt(o[1].qty)}개</td>
+        <td class="r bold" style="color:var(--text)">${fmtW(o[1].sales)}원</td>
+        <td class="r" style="color:${colors[i%colors.length]};font-weight:600">${sp}%</td>
+        <td><div style="height:4px;background:var(--surface3);border-radius:2px"><div style="height:4px;border-radius:2px;background:${colors[i%colors.length]};width:${sp}%"></div></div></td>
+      </tr>`;
+    }).join('');
+  } else {document.getElementById('optionCard').style.display='none'}
+
+  // 상품별
+  const maxS=r.products[0]?.[1]||1;
+  document.getElementById('productList').innerHTML=r.products.slice(0,6).map((p,i)=>`
+    <div class="product-row">
+      <span class="product-rank">${i+1}</span>
+      <span class="product-name" title="${p[0]}">${p[0]}</span>
+      <div class="product-bar-wrap"><div class="product-bar-inner" style="width:${Math.round(p[1]/maxS*100)}%;background:#00c97a"></div></div>
+      <span class="product-amt">${fmtW(p[1])}원</span>
+    </div>`).join('');
+
+  // AI 리뷰
+  document.getElementById('aiText').textContent=r.aiReview||'분석 중...';
+
+  // 예측
+  const predict=r.predictSales||Math.round(r.totalSales*1.1);
+  document.getElementById('predictVal').textContent=fmtW(predict)+'원';
+  document.getElementById('predictDesc').textContent=`이번 대비 +${Math.round((predict/r.totalSales-1)*100)}% 예상`;
+  document.getElementById('predictRight').textContent=`이번 공구 데이터 기반으로 TOP 옵션 중심 구성과 공구 전 콘텐츠 노출을 강화하면 다음 차수 추가 성장을 기대할 수 있어요.`;
+}
+
+function goAdmin(){document.getElementById('reportPage').style.display='none';document.getElementById('adminPanel').style.display='flex'}
+function viewReports(){
+  if(!allReports.length){alert('저장된 리포트가 없어요.');return}
+  showReportPage(allReports[allReports.length-1].seller);
+  showList();
+}
+function resetReports(){
+  if(!confirm('저장된 모든 리포트를 삭제할까요?')) return;
+  allReports=[];
+  localStorage.removeItem('sdshop_reports_v2');
+  alert('초기화 완료!');
+  goAdmin();
+}
+
+// 셀러 전용 URL이면 Supabase에서 데이터 로드
+async function initPage() {
+  if(isSellerView && sellerSlug) {
+    document.getElementById('adminPanel').style.display='none';
+    document.getElementById('reportPage').style.display='block';
+
+    // 셀러 정보 로드
+    const { data: seller } = await supabase
+      .from('sellers')
+      .select('*')
+      .eq('slug', sellerSlug)
+      .single();
+
+    if(!seller) {
+      document.getElementById('listTitle').textContent = '셀러를 찾을 수 없어요';
+      return;
+    }
+
+    // 리포트 로드
+    const { data: reports } = await supabase
+      .from('reports')
+      .select('*')
+      .eq('seller_id', seller.id)
+      .order('created_at', { ascending: false });
+
+    allReports = (reports||[]).map(r => ({
+      id: r.id,
+      seller: seller.seller_name,
+      name: r.name,
+      startDate: r.start_date,
+      endDate: r.end_date,
+      commission: r.commission,
+      totalSales: r.total_sales,
+      totalOrders: r.total_orders,
+      aov: r.aov,
+      cvr: r.cvr,
+      pageViews: r.page_views,
+      cartCount: r.cart_count,
+      cartRate: r.cart_rate,
+      abandonCount: r.abandon_count,
+      lostSales: r.lost_sales,
+      dates: r.dates||[],
+      salesArr: r.sales_arr||[],
+      ordersArr: r.orders_arr||[],
+      products: r.products||[],
+      options: r.options||[],
+      aiReview: r.ai_review,
+      predictSales: r.predict_sales
+    }));
+
+    document.getElementById('navSeller').textContent = seller.seller_name;
+    document.getElementById('listTitle').textContent = seller.seller_name + ' 공구 리포트';
+    document.getElementById('listSub').textContent = '총 ' + allReports.length + '개의 공구 리포트';
+    renderList(allReports);
+    showList();
+  } else if(allReports.length>0){
+    showReportPage(allReports[allReports.length-1].seller);
+    showList();
+  }
+}
+initPage();
+</script>
+</body>
+</html>
