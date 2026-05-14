@@ -387,7 +387,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.02)}
 // ── Supabase 설정 ──
 const SUPABASE_URL = 'https://kcycwyxstbohbleezlog.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeWN3eXhzdGJvaGJsZWV6bG9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3MzI1ODcsImV4cCI6MjA5NDMwODU4N30.IrvHIEmpptx7q_xv99J1Be9EIEkFLCd0hOB_8MZV1EI';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // 셀러 slug (URL에서 자동 감지)
 const urlPath = window.location.pathname;
@@ -546,13 +546,13 @@ async function generateReport(){
   // Supabase에 저장
   try {
     // 셀러 upsert
-    let { data: sellerData } = await supabase
+    let { data: sellerData } = await supabaseClient
       .from('sellers')
       .upsert({ seller_name: seller, slug: seller.toLowerCase().replace(/\s+/g,'-') }, { onConflict: 'seller_name' })
       .select().single();
 
     if(sellerData) {
-      await supabase.from('reports').insert({
+      await supabaseClient.from('reports').insert({
         seller_id: sellerData.id,
         name: report.name,
         start_date: report.startDate,
@@ -808,7 +808,7 @@ async function initPage() {
     document.getElementById('reportPage').style.display='block';
 
     // 셀러 정보 로드
-    const { data: seller } = await supabase
+    const { data: seller } = await supabaseClient
       .from('sellers')
       .select('*')
       .eq('slug', sellerSlug)
@@ -820,7 +820,7 @@ async function initPage() {
     }
 
     // 리포트 로드
-    const { data: reports } = await supabase
+    const { data: reports } = await supabaseClient
       .from('reports')
       .select('*')
       .eq('seller_id', seller.id)
