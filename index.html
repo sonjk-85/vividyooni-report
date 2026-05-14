@@ -395,7 +395,7 @@ const isSellerView = urlPath.includes('/seller/');
 const sellerSlug = isSellerView ? urlPath.split('/seller/')[1]?.replace(/\/$/,'') : null;
 
 let ordersData=null, cartData=null, abandonData=null;
-let allReports = isSellerView ? [] : JSON.parse(localStorage.getItem('sdshop_reports_v2')||'[]');
+let allReports = [];
 let charts={};
 
 // ── 드래그 ──
@@ -579,7 +579,6 @@ async function generateReport(){
   } catch(e) { console.error('Supabase 저장 오류:', e); }
 
   allReports.push(report);
-  localStorage.setItem('sdshop_reports_v2',JSON.stringify(allReports));
 
   btn.style.display='block'; gen.style.display='none';
   showReportPage(seller);
@@ -794,7 +793,6 @@ async function deleteReport(id){
   try {
     await supabaseClient.from('reports').delete().eq('id', id);
     allReports = allReports.filter(r => String(r.id) !== String(id));
-    localStorage.setItem('sdshop_reports_v2', JSON.stringify(allReports));
     const seller = allReports.length > 0 ? allReports[0].seller : '';
     renderList(allReports.filter(r => r.seller === seller));
     alert('삭제됐어요!');
@@ -805,15 +803,31 @@ async function deleteReport(id){
 }
 
 function goAdmin(){document.getElementById('reportPage').style.display='none';document.getElementById('adminPanel').style.display='flex'}
-function viewReports(){
-  if(!allReports.length){alert('저장된 리포트가 없어요.');return}
-  showReportPage(allReports[allReports.length-1].seller);
+async function viewReports(){
+  const seller = document.getElementById('sellerName').value.trim() || 'vividyooni';
+  const { data: sellerData } = await supabaseClient.from('sellers').select('*').eq('seller_name', seller).single();
+  if(!sellerData){ alert('저장된 리포트가 없어요.'); return; }
+  const { data: reports } = await supabaseClient.from('reports').select('*').eq('seller_id', sellerData.id).order('created_at', { ascending: false });
+  allReports = (reports||[]).map(r => ({
+    id: r.id, seller: sellerData.seller_name, name: r.name,
+    startDate: r.start_date, endDate: r.end_date, commission: r.commission,
+    totalSales: r.total_sales, totalOrders: r.total_orders, aov: r.aov, cvr: r.cvr,
+    pageViews: r.page_views, cartCount: r.cart_count, cartRate: r.cart_rate,
+    abandonCount: r.abandon_count, lostSales: r.lost_sales,
+    dates: typeof r.dates==='string'?JSON.parse(r.dates):(r.dates||[]),
+    salesArr: typeof r.sales_arr==='string'?JSON.parse(r.sales_arr):(r.sales_arr||[]),
+    ordersArr: typeof r.orders_arr==='string'?JSON.parse(r.orders_arr):(r.orders_arr||[]),
+    products: typeof r.products==='string'?JSON.parse(r.products):(r.products||[]),
+    options: typeof r.options==='string'?JSON.parse(r.options):(r.options||[]),
+    aiReview: r.ai_review, predictSales: r.predict_sales
+  }));
+  showReportPage(sellerData.seller_name);
   showList();
 }
-function resetReports(){
-  if(!confirm('저장된 모든 리포트를 삭제할까요?')) return;
+async function resetReports(){
+  if(!confirm('Supabase의 모든 리포트를 삭제할까요?')) return;
+  await supabaseClient.from('reports').delete().neq('id', '00000000-0000-0000-0000-000000000000');
   allReports=[];
-  localStorage.removeItem('sdshop_reports_v2');
   alert('초기화 완료!');
   goAdmin();
 }
