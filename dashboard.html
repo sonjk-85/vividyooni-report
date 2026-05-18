@@ -105,6 +105,26 @@ html{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
 .fn-loss-label{font-size:11px;color:var(--text2);display:flex;align-items:center;gap:6px}
 .fn-loss-val{font-size:16px;font-weight:700;color:var(--red);font-family:'DM Mono',monospace}
 
+/* OPTION DIMENSIONS (다축 분석) */
+.dim-card{margin-bottom:16px}
+.dim-card:last-child{margin-bottom:0}
+.dim-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px}
+.dim-title{font-size:12px;font-weight:600;color:var(--text)}
+.dim-sub{font-size:10px;color:var(--text3)}
+.dim-row{display:grid;grid-template-columns:130px 1fr 80px 60px;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
+.dim-row:last-child{border-bottom:none}
+.dim-row-name{font-size:12px;color:var(--text2);word-break:keep-all}
+.dim-row-bar{height:6px;background:var(--surface3);border-radius:3px;overflow:hidden}
+.dim-row-bar-fill{height:6px;border-radius:3px;transition:width .3s}
+.dim-row-sales{font-size:11px;color:var(--text2);text-align:right;font-family:'DM Mono',monospace}
+.dim-row-pct{font-size:12px;font-weight:600;text-align:right;font-family:'DM Mono',monospace}
+@media(max-width:640px){
+  .dim-row{grid-template-columns:90px 1fr 56px;gap:8px}
+  .dim-row-sales{display:none}
+  .dim-row-name{font-size:11px}
+  .dim-row-pct{font-size:11px}
+}
+
 /* INSTAGRAM SECTION */
 .ig-ctrl{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
 .ig-ctrl-label{font-size:12px;color:var(--text2);white-space:nowrap}
@@ -367,7 +387,10 @@ html{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
       <div class="cc-title">옵션별 판매 분석</div>
       <div class="cc-sub" id="optionTotal">—</div>
     </div>
-    <div style="overflow-x:auto">
+    <!-- 다축 옵션: 축별 카드 (자동 생성) -->
+    <div id="optionDims" style="display:none"></div>
+    <!-- 단축 옵션: 기존 표 -->
+    <div id="optionTableWrap" style="overflow-x:auto">
       <table class="week-table" id="optionTable">
         <thead><tr>
           <th>옵션명</th>
@@ -787,6 +810,27 @@ ${CAMPAIGNS[key].label}은 <strong>4월 말</strong> 진행 공구예요. 현재
   generateAI(c,key);
 }
 
+// 옵션 텍스트에서 [축이름]=값 패턴 추출
+function parseOptionAxes(opt){
+  const pattern=/\[([^\]]+)\]=([^;]+?)(?=;\s*\[|$)/g;
+  const result=[];
+  let m;
+  while((m=pattern.exec(opt))!==null){
+    let val=m[2].trim();
+    // 값 안의 대괄호 항목은 그대로 둠 (예: [단품], [Set 01])
+    result.push({axis:m[1].trim(),value:val});
+  }
+  return result;
+}
+
+// "옵션 선택" 단일 축은 의미 있는 분석 차원이 아니므로 1축으로 취급
+function isMeaningfulMultiAxis(axes){
+  if(axes.length<2)return false;
+  // "옵션 선택" 같은 일반 라벨은 의미 있는 축이 아님
+  const genericLabels=['옵션 선택','옵션선택','선택','옵션'];
+  return !axes.every(a=>genericLabels.includes(a.axis));
+}
+
 function renderOptions(c){
   const card=document.getElementById('optionCard');
   if(!c.options||!c.options.length){card.style.display='none';return;}
@@ -794,35 +838,114 @@ function renderOptions(c){
   const totalS=c.options.reduce((a,o)=>a+o.sales,0);
   const totalO=c.options.reduce((a,o)=>a+o.orders,0);
   document.getElementById('optionTotal').textContent=`총 ${fmt(totalO)}건`;
+
+  // 첫 옵션으로 축 구조 감지
+  const sampleAxes=parseOptionAxes(c.options[0].name);
+  const useMultiAxis=isMeaningfulMultiAxis(sampleAxes);
+
+  const dimsEl=document.getElementById('optionDims');
+  const tableWrap=document.getElementById('optionTableWrap');
+
+  if(useMultiAxis){
+    // 다축 분석: 축별로 집계
+    dimsEl.style.display='block';
+    tableWrap.style.display='none';
+    renderOptionDims(c.options,totalS);
+  } else {
+    // 단축: 기존 테이블
+    dimsEl.style.display='none';
+    tableWrap.style.display='block';
+    renderOptionTable(c.options,totalS);
+  }
+}
+
+// 다축 렌더 (예: 더핏 컬러/둘레/컵, 곡물도감 박스/맛)
+function renderOptionDims(options,totalS){
+  // 모든 옵션 파싱해서 축별 집계
+  const axisMap={};  // {축이름: {값: {sales, orders, qty}}}
+  options.forEach(o=>{
+    const axes=parseOptionAxes(o.name);
+    axes.forEach(a=>{
+      if(!axisMap[a.axis])axisMap[a.axis]={};
+      if(!axisMap[a.axis][a.value])axisMap[a.axis][a.value]={sales:0,orders:0,qty:0};
+      axisMap[a.axis][a.value].sales+=o.sales;
+      axisMap[a.axis][a.value].orders+=o.orders;
+      axisMap[a.axis][a.value].qty+=o.qty;
+    });
+  });
+
+  const colors=['#00c97a','#4a9eff','#ff6b9d','#f5a623','#a78bfa','#34d399','#fb923c','#06b6d4','#ec4899'];
+
+  const html=Object.entries(axisMap).map(([axis,vals])=>{
+    // 매출 큰 순 정렬
+    const entries=Object.entries(vals).sort((a,b)=>b[1].sales-a[1].sales);
+    // 5% 미만은 그 외로 묶기 (5개 이상일 때만)
+    let display=entries;
+    if(entries.length>5){
+      const main=[];
+      const etc=[];
+      entries.forEach(([name,v])=>{
+        const pct=totalS>0?v.sales/totalS*100:0;
+        if(pct>=5)main.push([name,v]);
+        else etc.push([name,v]);
+      });
+      if(etc.length>=2){
+        const etcSum=etc.reduce((acc,[,v])=>({
+          sales:acc.sales+v.sales,
+          orders:acc.orders+v.orders,
+          qty:acc.qty+v.qty
+        }),{sales:0,orders:0,qty:0});
+        display=[...main,[`그 외 ${etc.length}개`,{...etcSum,_isEtc:true,_etcDetail:etc.map(([n])=>n).join(', ')}]];
+      }
+    }
+
+    const axisTotal=entries.reduce((a,[,v])=>a+v.sales,0);
+    const rows=display.map(([name,v],i)=>{
+      const pct=axisTotal>0?Math.round(v.sales/axisTotal*100):0;
+      const color=v._isEtc?'#888884':colors[i%colors.length];
+      const nameStyle=v._isEtc?'color:var(--text3);font-style:italic':'';
+      const titleAttr=v._isEtc?`title="${v._etcDetail}"`:'';
+      return `<div class="dim-row">
+        <div class="dim-row-name" style="${nameStyle}" ${titleAttr}>${name}</div>
+        <div class="dim-row-bar"><div class="dim-row-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+        <div class="dim-row-sales">${fmtW(v.sales)}원</div>
+        <div class="dim-row-pct" style="color:${color}">${pct}%</div>
+      </div>`;
+    }).join('');
+
+    return `<div class="dim-card">
+      <div class="dim-head">
+        <div class="dim-title">${axis}별 비중</div>
+        <div class="dim-sub">${entries.length}개 항목</div>
+      </div>
+      ${rows}
+    </div>`;
+  }).join('');
+
+  document.getElementById('optionDims').innerHTML=html;
+}
+
+// 단축 테이블 렌더 (기존 로직 + 상위 7개 + 그 외)
+function renderOptionTable(options,totalS){
   const colors=['#00c97a','#4a9eff','#ff6b9d','#f5a623','#a78bfa','#34d399','#fb923c'];
 
-  // 10% 미만 옵션을 "기타"로 묶기 (단, 옵션이 4개 이하면 묶지 않음)
+  // 7개 이상이면 상위 6개 + 그 외
   let displayOptions;
-  if(c.options.length<=4){
-    displayOptions=c.options;
+  if(options.length<=7){
+    displayOptions=options;
   } else {
-    const main=[];
-    const etc=[];
-    c.options.forEach(o=>{
-      const sp=totalS>0?(o.sales/totalS*100):0;
-      if(sp>=10) main.push(o);
-      else etc.push(o);
-    });
-    // 기타가 2개 미만이면 묶을 의미 없음
-    if(etc.length<=1){
-      displayOptions=c.options;
-    } else {
-      const etcRow={
-        name:`그 외 ${etc.length}개 옵션`,
-        orders:etc.reduce((a,o)=>a+o.orders,0),
-        qty:etc.reduce((a,o)=>a+o.qty,0),
-        sales:etc.reduce((a,o)=>a+o.sales,0),
-        cost:etc.reduce((a,o)=>a+(o.cost||0),0),
-        _isEtc:true,
-        _etcDetail:etc.map(o=>o.name).join(', ')
-      };
-      displayOptions=[...main,etcRow];
-    }
+    const main=options.slice(0,6);
+    const etc=options.slice(6);
+    const etcRow={
+      name:`그 외 ${etc.length}개 옵션`,
+      orders:etc.reduce((a,o)=>a+o.orders,0),
+      qty:etc.reduce((a,o)=>a+o.qty,0),
+      sales:etc.reduce((a,o)=>a+o.sales,0),
+      cost:etc.reduce((a,o)=>a+(o.cost||0),0),
+      _isEtc:true,
+      _etcDetail:etc.map(o=>o.name).join(', ')
+    };
+    displayOptions=[...main,etcRow];
   }
 
   document.getElementById('optionBody').innerHTML=displayOptions.map((o,i)=>{
