@@ -11,9 +11,9 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#0e0e0e;--surface:#161616;--surface2:#1e1e1e;--surface3:#2a2a2a;
-  --border:rgba(255,255,255,0.09);--border2:rgba(255,255,255,0.16);
-  --text:#f0f0ee;--text2:#a8a8a4;--text3:#707070;
+  --bg:#111111;--surface:#1c1c1c;--surface2:#242424;--surface3:#2e2e2e;
+  --border:rgba(255,255,255,0.11);--border2:rgba(255,255,255,0.20);
+  --text:#f4f4f2;--text2:#c0c0bc;--text3:#909090;
   --green:#00c97a;--green-dim:rgba(0,201,122,0.12);
   --amber:#f5a623;--amber-dim:rgba(245,166,35,0.1);
   --blue:#4a9eff;--blue-dim:rgba(74,158,255,0.1);
@@ -405,15 +405,7 @@ const CAMPAIGNS={
       {date:'2026-04-26',sales:7031000,orders:79,cost:5484180},
       {date:'2026-04-27',sales:5340000,orders:60,cost:4165200},
       {date:'2026-04-28',sales:2136000,orders:24,cost:1666080},
-      {date:'2026-04-29',sales:1958000,orders:22,cost:1527240},
-      {date:'2026-04-30',sales:1246000,orders:14,cost:971880},
-      {date:'2026-05-02',sales:445000,orders:5,cost:347100},
-      {date:'2026-05-03',sales:89000,orders:1,cost:69420},
-      {date:'2026-05-04',sales:267000,orders:3,cost:208260},
-      {date:'2026-05-05',sales:356000,orders:4,cost:277680},
-      {date:'2026-05-06',sales:267000,orders:3,cost:208260},
-      {date:'2026-05-09',sales:267000,orders:3,cost:208260},
-      {date:'2026-05-18',sales:89000,orders:1,cost:69420}
+      {date:'2026-04-29',sales:4717000,orders:53,cost:3678060,label:'04-29~05-18 합산'}
     ]
   },
   '괄사빗':{
@@ -736,8 +728,9 @@ function renderWeekTable(c){
     const share=totalSales>0?Math.round(d.sales/totalSales*100):0;
     const ig=igByDate[d.date]||{count:0,views:0,comments:0};
     const isPeak=d.sales===Math.max(...days.map(x=>x.sales));
+    const dateLabel=d.label||d.date.slice(5);
     return `<tr>
-      <td class="bold" style="${isPeak?'color:var(--green)':''}">${d.date.slice(5)} ${isPeak?'<span style="font-size:9px;background:var(--green-dim);color:var(--green);padding:1px 6px;border-radius:8px;margin-left:4px">피크</span>':''}</td>
+      <td class="bold" style="${isPeak?'color:var(--green)':''}">${dateLabel} ${isPeak?'<span style="font-size:9px;background:var(--green-dim);color:var(--green);padding:1px 6px;border-radius:8px;margin-left:4px">피크</span>':''}</td>
       <td class="r bold" style="color:var(--text)">${d.sales>0?fmtW(d.sales)+'원':'—'}</td>
       <td class="r">${d.orders>0?fmt(d.orders)+'건':'—'}</td>
       <td class="r" style="color:${color};font-weight:600">${share>0?share+'%':'—'}</td>
@@ -1171,31 +1164,39 @@ async function generateAI(c,key){
 ## 공구 기본 정보
 - 공구명: ${c.label}
 - 기간: ${c.start} ~ ${c.end} (${c.daily.length}일)
-- 총 매출: ${fmt(c.total)}원 / 구매자 ${fmt(c.orders)}명
+- 총 매출: ${fmt(c.total)}원 / 출고 ${fmt(c.orders)}건
+- 마진: ${fmtW(c.margin||0)}원 (마진율 ${c.marginRate||0}%)
 - 평균 객단가: ${fmt(aov)}원
-- 페이지뷰→구매 전환율: ${cvr}% (페이지뷰 ${fmt(c.pv)}회)
-- 장바구니 담김: ${fmt(c.cartCount)}건 → 이탈률: ${abandonRate}%
-- 이탈 손실액: ${fmtW(c.lost)}원 (전략적 회수 가능 추정: ${fmtW(lostRecovery)}원)
-- 오픈일(D1) 매출 집중도: ${d1Share}% (${fmtW(d1.sales)}원)
-- 피크일: ${peakDay.date.slice(5)} ${peakDay.date===d1.date?'(D1=피크)':'(오픈 후 반등)'}, 전체의 ${peakShare}%
-${topOpt?`- 최고 판매 옵션: ${topOpt.name} (${Math.round(topOpt.sales/c.total*100)}% 비중)`:''}
+- 페이지뷰→구매 전환율: ${cvr}% (페이지뷰 ${fmt(c.pv)}회) ※ SNS 공구 평균 전환율 3~8%
+- 장바구니→이탈률: ${abandonRate}% ※ 50% 이상이면 개선 필요, 40% 이하면 양호
+- 이탈 손실액: ${fmtW(c.lost)}원
+- 오픈일(D1) 매출 집중도: ${d1Share}% ※ 60% 이상=오픈빨 강함, 40% 이하=분산형
+- 피크일: ${peakDay.date.slice(5)} ${peakDay.date===d1.date?'(D1이 피크 = 사전 콘텐츠 효과 큼)':'(오픈 후 반등 = 마감 콘텐츠 효과 있음)'}, 전체의 ${peakShare}%
+${topOpt?'- 최고 판매 옵션: '+topOpt.name+' ('+Math.round(topOpt.sales/c.total*100)+'% 비중)':''}
+
+## 해석 기준 (반드시 준수)
+- 전환율: 8% 이상=우수, 5~8%=양호, 3~5%=평균, 3% 미만=개선 필요
+- 이탈률: 40% 미만=양호, 40~55%=보통, 55% 초과=문제
+- D1 집중도: 60% 이상=오픈빨 강함(긍정), 30% 미만=분산형(중립), 사전 콘텐츠 효과 반영
+- 마진율: 40% 이상=우수, 25~40%=양호, 25% 미만=원가 압박
+- 객단가: 높을수록 세트/묶음 구성이 잘 된 것
 
 ## 요청사항
 다음 4개 섹션으로 나눠서 분석해주세요:
 
 **① 이번 공구 성과 진단** (3~4문장)
-수치 기반으로 업계 SNS 공구 평균 대비 이 공구의 포지셔닝을 평가해주세요. 전환율, 객단가, 이탈률 각각의 수준을 판단해주세요.
+위 해석 기준을 정확히 적용해서 전환율, 이탈률, 마진율, 객단가를 평가해주세요.
 
 **② 매출 패턴 분석**
-D1 집중도, 피크 타이밍, 일별 매출 흐름이 어떤 의미인지 인사이트를 주세요.
+D1 집중도와 피크 타이밍이 어떤 의미인지, 이 공구의 구매 동선이 어떻게 흘렀는지 분석해주세요.
 
 **③ 핵심 개선 과제** (2~3가지, 구체적 수치 목표 포함)
-이탈 개선, 전환율 개선, 옵션 구성 등 우선순위 순으로.
+가장 임팩트 큰 순서로.
 
 **④ 다음 차수 전략 제안**
-공구 기간, 가격 구성, 콘텐츠 타이밍, 옵션 구성 중심으로 실행 가능한 제안 3가지.
+실행 가능한 3가지, 공구 기간/가격/콘텐츠 타이밍 중심으로.
 
-전문적이고 데이터 기반으로, 셀러 입장에서 바로 실행할 수 있는 수준으로 작성. 이모지 절제. 총 500자 내외.`;
+전문적이고 데이터 기반으로 작성. 이모지 절제. 총 600자 내외.`;
 
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{
@@ -1206,8 +1207,13 @@ D1 집중도, 피크 타이밍, 일별 매출 흐름이 어떤 의미인지 인�
     const d=await res.json();
     aiText.textContent=d.content?.[0]?.text||'분석 결과를 불러올 수 없어요.';
   }catch(e){
-    const abanStr=parseFloat(abandonRate)>60?`이탈률 ${abandonRate}%는 업계 평균(55~65%)과 유사하나 손실액 ${fmtW(c.lost)}원 중 약 30%는 마감 전 재노출 콘텐츠로 회수 가능합니다.`:`이탈률 ${abandonRate}%는 양호한 수준입니다. 추가 콘텐츠 없이도 상당수가 재방문 구매로 전환되고 있습니다.`;
-    aiText.textContent=`① 성과 진단\n전환율 ${cvr}%는 SNS 공구 평균(2~5%) ${parseFloat(cvr)>5?'상회':'수준'}, 객단가 ${fmt(aov)}원으로 단가 구성이 ${aov>50000?'견고합니다':'개선 여지가 있습니다'}.\n\n② 매출 패턴\nD1 집중도 ${d1Share}%로 ${d1Share>60?'오픈 직후 팬덤 구매가 강합니다. 사전 예고 콘텐츠 효과가 컸던 공구예요.':'초반 집중도가 낮아 공구 기간 전반에 걸쳐 분산 구매가 발생했습니다.'}\n\n③ 개선 과제\n${abanStr}\n\n④ 다음 차수 전략\n· TOP 옵션(${topOpt?topOpt.name:'베스트 셀러'}) 전면 배치로 초기 전환율 +2~3%p 목표\n· 마감 D-1 게시물 3개 이상 집중 업로드로 이탈 재유입\n· 공구 기간 ${c.daily.length}일 → ${c.daily.length<=5?c.daily.length+2:c.daily.length-1}일로 조정해 희소성 강화`;
+    const cvrNum=parseFloat(cvr);
+    const abanNum=parseFloat(abandonRate);
+    const d1Num=d1Share;
+    const cvrStr=cvrNum>=8?'우수한 수준(업계 평균 3~8% 상회)':cvrNum>=5?'양호한 수준':cvrNum>=3?'평균 수준':'개선이 필요한 수준';
+    const abanStr=abanNum<40?'이탈률 '+abandonRate+'%로 양호합니다.':abanNum<55?'이탈률 '+abandonRate+'%로 보통 수준이며 개선 여지가 있습니다.':'이탈률 '+abandonRate+'%로 높은 편입니다. 마감 콘텐츠와 장바구니 재알림을 강화하세요.';
+    const d1Str=d1Num>=60?'D1 집중도 '+d1Share+'%로 오픈빨이 강합니다. 사전 콘텐츠 효과가 매출을 견인한 공구예요.':d1Num>=40?'D1 집중도 '+d1Share+'%로 오픈 후 고르게 분산된 구매 패턴입니다.':'D1 집중도 '+d1Share+'%로 초반보다 마감 구간에서 매출이 집중됐습니다. 마감 콘텐츠 효과가 컸던 공구예요.';
+    aiText.textContent='① 성과 진단\n전환율 '+cvr+'%는 '+cvrStr+'. 객단가 '+fmt(aov)+'원, 마진율 '+(c.marginRate||0)+'%.\n\n② 매출 패턴\n'+d1Str+'\n\n③ 개선 과제\n'+abanStr+' 손실액 '+fmtW(c.lost)+'원 중 약 30%는 마감 전 재노출 콘텐츠로 회수 가능합니다.\n\n④ 다음 차수 전략\n· TOP 옵션('+( topOpt?topOpt.name:'베스트 셀러')+') 전면 배치로 초기 전환율 +2~3%p 목표\n· 마감 D-1 게시물 3개 이상 집중 업로드로 이탈 재유입\n· 공구 기간 '+c.daily.length+'일 → '+(c.daily.length<=5?c.daily.length+2:c.daily.length-1)+'일로 조정해 희소성 강화';
   }
 }
 
