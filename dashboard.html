@@ -34,11 +34,12 @@ html{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
 .camp-btn:hover{color:var(--text);border-color:var(--border2)}
 .camp-btn.active{color:#000;border-color:transparent}
 .camp-btn[data-c="all"].active{background:var(--text)}
-.camp-btn[data-c="에어스텝퍼"].active{background:#4a9eff}
-.camp-btn[data-c="괄사빗"].active{background:#00c97a}
-.camp-btn[data-c="더핏"].active{background:#ff6b9d}
-.camp-btn[data-c="작영오일"].active{background:#f5a623}
-.camp-btn[data-c="베이키드콘"].active{background:#a78bfa;color:#fff}
+.camp-btn[data-c="air-stepper-6"].active{background:#4a9eff;color:#000}
+.camp-btn[data-c="gua-2"].active{background:#00c97a;color:#000}
+.camp-btn[data-c="thefit-1"].active{background:#ff6b9d;color:#000}
+.camp-btn[data-c="jakyoung-oil-1"].active{background:#f5a623;color:#000}
+.camp-btn[data-c="baked-con-1"].active{background:#a78bfa;color:#fff}
+.camp-btn[data-c="gok-2"].active{background:#34d399;color:#000}
 .camp-btn[data-c="기타"].active{background:#888884}
 
 /* VIEW TOGGLE */
@@ -286,11 +287,7 @@ html{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
 
 <div class="camp-bar" id="campBar">
   <button class="camp-btn active" data-c="all" onclick="selectCamp('all',this)">전체</button>
-  <button class="camp-btn" data-c="에어스텝퍼" onclick="selectCamp('에어스텝퍼',this)">에어스텝퍼 6차</button>
-  <button class="camp-btn" data-c="괄사빗" onclick="selectCamp('괄사빗',this)">괄사빗 2차</button>
-  <button class="camp-btn" data-c="더핏" onclick="selectCamp('더핏',this)">더핏브라</button>
-  <button class="camp-btn" data-c="작영오일" onclick="selectCamp('작영오일',this)">작영 오일</button>
-  <button class="camp-btn" data-c="베이키드콘" onclick="selectCamp('베이키드콘',this)">베이키드콘</button>
+  <!-- 공구 버튼은 Supabase 로드 후 동적 생성 -->
 </div>
 
 <div class="wrap">
@@ -490,126 +487,120 @@ const SUPABASE_ANON_KEY='sb_publishable_jP9l8azSMDD2S5Af2tiFoA_xQsjFids';
 let sb;
 try { sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY); } catch(e) { sb=null; }
 
-const CAMP_COLORS={'에어스텝퍼':'#4a9eff','괄사빗':'#00c97a','더핏':'#ff6b9d','작영오일':'#f5a623','베이키드콘':'#a78bfa','기타':'#888884','all':'#f0f0ee'};
-
-const CAMPAIGNS={
-  '에어스텝퍼':{
-    label:'에어스텝퍼 6차',start:'2026-04-22',end:'2026-05-03',
-    igKeywords:['에어스텝퍼','스텝퍼'],
-    total:79299000,supply:70718652,cost:61922640,margin:17376360,marginRate:21.9,
-    orders:891,qty:892,aov:89000,pv:19994,cartCount:1840,abandonCount:932,lost:82983416,
-    options:[
-      {name:'토프베이지 [1만원할인]',orders:413,qty:413,sales:36757000,cost:28670460},
-      {name:'토프베이지 [4천원할인]',orders:239,qty:240,sales:21360000,cost:16660800},
-      {name:'블루그레이 [1만원할인]',orders:92,qty:92,sales:8188000,cost:6386640},
-      {name:'토프베이지 [7천원할인]',orders:76,qty:76,sales:6764000,cost:5275920},
-      {name:'블루그레이 [4천원할인]',orders:49,qty:49,sales:4361000,cost:3401580},
-      {name:'블루그레이 [7천원할인]',orders:21,qty:21,sales:1869000,cost:1457820},
-    ],
-    daily:[
-      {date:'2026-04-22',sales:35491000,orders:397,cost:27675060},
-      {date:'2026-04-23',sales:9591000,orders:107,cost:7482480},
-      {date:'2026-04-24',sales:8099000,orders:91,cost:6317220},
-      {date:'2026-04-25',sales:7120000,orders:80,cost:5553600},
-      {date:'2026-04-26',sales:7031000,orders:79,cost:5484180},
-      {date:'2026-04-27',sales:5340000,orders:60,cost:4165200},
-      {date:'2026-04-28',sales:2136000,orders:24,cost:1666080},
-      {date:'2026-04-29',sales:4717000,orders:53,cost:3678060,label:'04-29~05-18 합산'}
-    ]
-  },
-  '괄사빗':{
-    label:'웰리브 림프순환 두피 괄사빗 2차',start:'2026-05-12',end:'2026-05-18',
-    igKeywords:['괄사','반려빗','두피빗','림프','빗질'],
-    total:27003000,supply:21211759,cost:16324900,margin:10678100,marginRate:39.5,
-    orders:251,qty:251,aov:107582,pv:5137,cartCount:446,abandonCount:191,lost:13179000,
-    options:[
-      {name:'림프순환 두피 괄사빗 2개',orders:150,qty:150,sales:19350000,cost:11700000},
-      {name:'림프순환 두피 괄사빗 1개',orders:97,qty:97,sales:6693000,cost:4044900},
-      {name:'림프순환 두피 괄사빗 4개',orders:4,qty:4,sales:960000,cost:580000},
-    ],
-    daily:[
-      {date:'2026-05-12',sales:16713000,orders:155,cost:9936300},
-      {date:'2026-05-13',sales:2484000,orders:24,cost:1545600},
-      {date:'2026-05-14',sales:1614000,orders:16,cost:975600},
-      {date:'2026-05-15',sales:1806000,orders:17,cost:1092000},
-      {date:'2026-05-16',sales:2172000,orders:21,cost:1326600},
-      {date:'2026-05-17',sales:1068000,orders:10,cost:648000},
-      {date:'2026-05-18',sales:1146000,orders:8,cost:700800}
-    ]
-  },
-  '더핏':{
-    label:'더핏브라 & 나시탑',start:'2026-05-14',end:'2026-05-18',
-    igKeywords:['더핏','브라','나시탑','속옷','나시브라'],
-    total:7208000,supply:6074905,cost:5045600,margin:2162400,marginRate:30.0,
-    orders:242,qty:271,aov:29785,pv:2449,cartCount:544,abandonCount:302,lost:8861400,
-    options:[
-      {name:'더핏브라 서포트 2장',orders:68,qty:70,sales:1953000,cost:1367100},
-      {name:'더핏브라 서포트 3장 이상',orders:41,qty:52,sales:1450800,cost:1015560},
-      {name:'슬림업 나시 브라탑 2장',orders:32,qty:34,sales:1088000,cost:761600},
-      {name:'슬림업 나시 크롭탑 2장',orders:21,qty:24,sales:720000,cost:504000},
-      {name:'슬림업 나시 브라탑 1장',orders:14,qty:14,sales:462000,cost:323400},
-      {name:'더핏브라 서포트 1장',orders:13,qty:14,sales:432600,cost:302820},
-    ],
-    daily:[
-      {date:'2026-05-14',sales:3490200,orders:118,cost:2443140},
-      {date:'2026-05-15',sales:1272600,orders:43,cost:890820},
-      {date:'2026-05-16',sales:524000,orders:18,cost:366800},
-      {date:'2026-05-17',sales:1453200,orders:49,cost:1017240},
-      {date:'2026-05-18',sales:468000,orders:14,cost:327600}
-    ]
-  },
-  '베이키드콘':{
-    label:'베이키드콘 오리지날&와사비맛 1차',start:'2026-04-28',end:'2026-05-07',
-    igKeywords:['베이키드콘','와사비','오리지날','콘'],
-    total:1655200,supply:1365214,cost:1108984,margin:546216,marginRate:33.0,
-    orders:56,qty:61,aov:29557,pv:0,cartCount:0,abandonCount:0,lost:0,
-    options:[
-      {name:'오리지날+와사비 혼합 12개',orders:10,qty:10,sales:672000,cost:450240},
-      {name:'오리지날3개+와사비2개',orders:15,qty:15,sales:427500,cost:286425},
-      {name:'오리지날 12개(1박스)',orders:3,qty:3,sales:201600,cost:135072},
-      {name:'오리지날 5개',orders:4,qty:4,sales:114000,cost:76380},
-      {name:'오리지날 3개',orders:6,qty:6,sales:104400,cost:69948},
-      {name:'와사비맛 1개',orders:9,qty:12,sales:70800,cost:47436},
-    ],
-    daily:[
-      {date:'2026-04-28',sales:537300,orders:19,cost:359889},
-      {date:'2026-04-29',sales:384900,orders:14,cost:257883},
-      {date:'2026-04-30',sales:67200,orders:2,cost:45024},
-      {date:'2026-05-01',sales:104400,orders:4,cost:69948},
-      {date:'2026-05-02',sales:201600,orders:3,cost:135072},
-      {date:'2026-05-04',sales:104400,orders:4,cost:69948},
-      {date:'2026-05-05',sales:67200,orders:3,cost:45024},
-      {date:'2026-05-06',sales:67200,orders:3,cost:45024},
-      {date:'2026-05-07',sales:121000,orders:4,cost:81072}
-    ]
-  },
-  '작영오일':{
-    label:'작영 트리플에이 에너지오일 1차',start:'2026-04-27',end:'2026-05-09',
-    igKeywords:['에너지오일','트리플에이','오일','작영'],
-    total:21222000,supply:16137694,cost:13636400,margin:7585600,marginRate:35.7,
-    orders:134,qty:140,aov:158373,pv:2073,cartCount:264,abandonCount:137,lost:11919000,
-    options:[
-      {name:'작영오일 1개',orders:84,qty:90,sales:7830000,cost:4734000},
-      {name:'작영오일 3개',orders:44,qty:44,sales:10692000,cost:7000400},
-      {name:'작영오일 6개',orders:6,qty:6,sales:2700000,cost:1902000},
-    ],
-    daily:[
-      {date:'2026-04-27',sales:4002000,orders:44,cost:2563200},
-      {date:'2026-04-28',sales:3219000,orders:36,cost:2062200},
-      {date:'2026-04-29',sales:2784000,orders:30,cost:1784400},
-      {date:'2026-04-30',sales:2001000,orders:22,cost:1282200},
-      {date:'2026-05-01',sales:1653000,orders:18,cost:1058400},
-      {date:'2026-05-02',sales:1566000,orders:17,cost:1003200},
-      {date:'2026-05-03',sales:957000,orders:10,cost:613200},
-      {date:'2026-05-04',sales:870000,orders:9,cost:557400},
-      {date:'2026-05-05',sales:2088000,orders:22,cost:1338000},
-      {date:'2026-05-06',sales:957000,orders:10,cost:613200},
-      {date:'2026-05-07',sales:696000,orders:7,cost:446400},
-      {date:'2026-05-08',sales:261000,orders:3,cost:167400},
-      {date:'2026-05-09',sales:87000,orders:1,cost:55800}
-    ]
-  }
+const CAMP_COLORS={
+  'air-stepper-6':'#4a9eff',
+  'gua-2':'#00c97a',
+  'thefit-1':'#ff6b9d',
+  'jakyoung-oil-1':'#f5a623',
+  'baked-con-1':'#a78bfa',
+  'gok-2':'#34d399',
+  '기타':'#888884',
+  'all':'#f0f0ee'
 };
+
+// CAMPAIGNS는 페이지 로드 시 Supabase에서 동적으로 채워짐
+let CAMPAIGNS = {};
+
+// Supabase에서 모든 공구 데이터 로드
+async function loadCampaignsFromSupabase() {
+  if (!sb) {
+    console.error('Supabase 클라이언트 초기화 실패');
+    return false;
+  }
+
+  try {
+    // 1) 공구 요약 (KPI)
+    const {data: summary, error: e1} = await sb.from('v_campaign_summary').select('*');
+    if (e1) throw e1;
+
+    // 2) 일별 매출
+    const {data: daily, error: e2} = await sb.from('v_campaign_daily').select('*');
+    if (e2) throw e2;
+
+    // 3) 옵션별 매출
+    const {data: opts, error: e3} = await sb.from('v_campaign_options').select('*');
+    if (e3) throw e3;
+
+    // 공구별 데이터 조립
+    summary.forEach(s => {
+      const k = s.campaign_key;
+      CAMPAIGNS[k] = {
+        label: s.label,
+        start: s.start_date,
+        end: s.end_date,
+        igKeywords: s.ig_keywords || [],
+        total: Number(s.total_sales) || 0,
+        cost: Number(s.total_cost) || 0,
+        supply: 0,  // 향후 필요 시 컬럼 추가
+        margin: Number(s.margin) || 0,
+        marginRate: Number(s.margin_rate) || 0,
+        orders: Number(s.orders) || 0,
+        qty: Number(s.qty) || 0,
+        aov: Number(s.aov) || 0,
+        pv: Number(s.pv) || 0,
+        cartCount: Number(s.cart_count) || 0,
+        abandonCount: Number(s.abandon_count) || 0,
+        lost: Number(s.lost) || 0,
+        options: [],
+        daily: []
+      };
+    });
+
+    // 일별 매출 매핑
+    daily.forEach(d => {
+      if (CAMPAIGNS[d.campaign_key]) {
+        CAMPAIGNS[d.campaign_key].daily.push({
+          date: d.date,
+          sales: Number(d.sales) || 0,
+          orders: Number(d.orders) || 0,
+          cost: Number(d.cost) || 0
+        });
+      }
+    });
+    // 일별 정렬
+    Object.values(CAMPAIGNS).forEach(c => {
+      c.daily.sort((a, b) => a.date.localeCompare(b.date));
+    });
+
+    // 옵션 매핑 (매출 큰 순)
+    opts.forEach(o => {
+      if (CAMPAIGNS[o.campaign_key]) {
+        CAMPAIGNS[o.campaign_key].options.push({
+          name: o.option_name,
+          orders: Number(o.orders) || 0,
+          qty: Number(o.qty) || 0,
+          sales: Number(o.sales) || 0,
+          cost: Number(o.cost) || 0
+        });
+      }
+    });
+    Object.values(CAMPAIGNS).forEach(c => {
+      c.options.sort((a, b) => b.sales - a.sales);
+    });
+
+    return true;
+  } catch (err) {
+    console.error('Supabase 로드 실패:', err);
+    return false;
+  }
+}
+
+// 캠페인 버튼 동적 생성
+function renderCampButtons() {
+  const bar = document.getElementById('campBar');
+  // "전체" 버튼은 유지, 나머지 제거
+  Array.from(bar.querySelectorAll('.camp-btn:not([data-c="all"])')).forEach(b => b.remove());
+  // 매출 큰 순으로 정렬해서 버튼 생성
+  const sorted = Object.entries(CAMPAIGNS).sort((a, b) => b[1].total - a[1].total);
+  sorted.forEach(([key, c]) => {
+    const btn = document.createElement('button');
+    btn.className = 'camp-btn';
+    btn.dataset.c = key;
+    btn.textContent = c.label;
+    btn.onclick = () => selectCamp(key, btn);
+    bar.appendChild(btn);
+  });
+}
 
 const IG_POSTS=[
   // ── 에어스텝퍼 6차 사전/공구 기간 (4월) ──
@@ -687,10 +678,14 @@ function classifyPost(p,campKey){
   return kws.some(k=>p.caption.includes(k))?campKey:'etc';
 }
 
-const PIN_COLORS={gua:'#4a9eff',fit:'#ff6b9d',both:'#f5a623',etc:'#555552'};
+const PIN_COLORS={
+  gua:'#4a9eff',fit:'#ff6b9d',both:'#f5a623',etc:'#555552',
+  'air-stepper-6':'#4a9eff','gua-2':'#00c97a','thefit-1':'#ff6b9d',
+  'jakyoung-oil-1':'#f5a623','baked-con-1':'#a78bfa','gok-2':'#34d399'
+};
 const W_LABELS=['당일 업로드만','업로드 후 1일','업로드 후 2일','업로드 후 3일','업로드 후 4일'];
 
-let currentCamp='에어스텝퍼';
+let currentCamp='';  // init() 에서 매출 1위 공구로 설정됨
 let currentView='camp';
 let igPosts=null;
 let igLoaded=false;
@@ -716,7 +711,13 @@ function setView(v,btn){
 }
 
 function selectCamp(c,btn){
-  currentCamp=c==='all'?'에어스텝퍼':c;
+  // "all" 클릭 시 매출 1위 공구로 폴백
+  if (c === 'all') {
+    const sorted = Object.entries(CAMPAIGNS).sort((a, b) => b[1].total - a[1].total);
+    currentCamp = sorted.length > 0 ? sorted[0][0] : '';
+  } else {
+    currentCamp = c;
+  }
   document.querySelectorAll('.camp-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   renderCamp(currentCamp);
@@ -770,8 +771,8 @@ function renderCamp(key){
     const w=parseInt(document.getElementById('igWindow').value);
     renderIgChart(igPosts,key,w);
   } else {
-    // 작영오일/베이키드콘은 4월 인스타 데이터 필요 안내
-    if(key==='작영오일'||key==='베이키드콘'){
+    // 작영오일/베이키드콘/곡물도감은 4월 인스타 데이터 필요 안내
+    if(key==='jakyoung-oil-1'||key==='baked-con-1'||key==='gok-2'){
       const ins=document.getElementById('igInsight');
       ins.style.display='block';
       ins.innerHTML=`<strong style="color:var(--amber)">인스타 데이터 수집 필요</strong><br>
@@ -1416,12 +1417,37 @@ function selectCampFromMonth(key){
   if(btn){selectCamp(key,btn);}
 }
 
-// 초기 렌더
-try {
-  const initBtn = document.querySelector('.camp-btn[data-c="에어스텝퍼"]');
-  if(initBtn) selectCamp('에어스텝퍼', initBtn);
-  else renderCamp('에어스텝퍼');
-} catch(e) { console.error('init error:', e); }
+// 초기화: Supabase에서 공구 데이터 로드 후 첫 화면 렌더
+async function init() {
+  // 로딩 표시
+  document.body.style.cursor = 'wait';
+
+  const ok = await loadCampaignsFromSupabase();
+  if (!ok || Object.keys(CAMPAIGNS).length === 0) {
+    alert('데이터 로드 실패. 새로고침 해주세요.\n(개발자 도구 콘솔에서 상세 에러 확인 가능)');
+    document.body.style.cursor = '';
+    return;
+  }
+
+  // 캠페인 버튼 동적 생성
+  renderCampButtons();
+
+  // 매출 1위 공구를 기본 선택
+  const sorted = Object.entries(CAMPAIGNS).sort((a, b) => b[1].total - a[1].total);
+  const firstKey = sorted[0][0];
+  currentCamp = firstKey;
+
+  const initBtn = document.querySelector(`.camp-btn[data-c="${firstKey}"]`);
+  if (initBtn) selectCamp(firstKey, initBtn);
+  else renderCamp(firstKey);
+
+  document.body.style.cursor = '';
+}
+
+init().catch(e => {
+  console.error('init error:', e);
+  alert('초기화 실패: ' + e.message);
+});
 </script>
 </body>
 </html>
