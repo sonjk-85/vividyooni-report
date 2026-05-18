@@ -918,10 +918,12 @@ function renderIgChart(posts,campKey,w){
   // 핀
   setTimeout(()=>buildPins(fp,campKey,w,allDates,salesByDate),300);
 
-  // 상관관계 — null(기간 밖) 제외하고 유효한 게시물만
+  // 상관관계 — 릴스(조회수 있는 것)만으로 조회수 상관 계산, 전체로 댓글/업로드수 계산
+  const reelValid=fp.filter(p=>p.views>0&&getAttrSales(p,w,campKey)!==null);
+  const reelAttr=reelValid.map(p=>{const r=getAttrSales(p,w,campKey);return r?r.sales:0;});
   const validPosts=fp.filter(p=>getAttrSales(p,w,campKey)!==null);
   const attrArr=validPosts.map(p=>{const r=getAttrSales(p,w,campKey);return r?r.sales:0;});
-  const rV=pearson(validPosts.map(p=>p.views),attrArr);
+  const rV=pearson(reelValid.map(p=>p.views),reelAttr);
   const rC=pearson(validPosts.map(p=>p.comments),attrArr);
   const grouped={};fp.forEach(p=>{if(!grouped[p.date])grouped[p.date]=[];grouped[p.date].push(p);});
   const daySales=allDates.map(d=>salesByDate[d]||0);
@@ -943,8 +945,10 @@ function renderIgChart(posts,campKey,w){
   // 고도화된 인사이트 계산
   const prePostsCount=fp.filter(p=>new Date(p.date)<new Date(camp.start)).length;
   const inPostsCount=fp.filter(p=>new Date(p.date)>=new Date(camp.start)).length;
-  const maxCommentPost=fp.reduce((a,b)=>(b.comments>a.comments?b:a),fp[0]||{comments:0,label:'—'});
-  const maxViewPost=fp.reduce((a,b)=>(b.views>a.views?b:a),fp[0]||{views:0,label:'—'});
+  const maxCommentPost=fp.length>0?fp.reduce((a,b)=>(b.comments>a.comments?b:a)):null;
+  const maxViewPost=fp.length>0?fp.filter(p=>p.views>0).reduce((a,b)=>(b.views>a.views?b:a),fp[0]):null;
+  const maxPostTitle=maxCommentPost?(maxCommentPost.label&&maxCommentPost.label.length>3?maxCommentPost.label:maxCommentPost.caption?.slice(0,30)||'—'):'—';
+  const maxViewTitle=maxViewPost?(maxViewPost.label&&maxViewPost.label.length>3?maxViewPost.label:maxViewPost.caption?.slice(0,30)||'—'):'—';
   const reelPosts=fp.filter(p=>p.type==='릴스');
   const cardPosts=fp.filter(p=>p.type==='카드뉴스');
   const avgReelViews=reelPosts.length>0?Math.round(reelPosts.reduce((a,p)=>a+(p.views||0),0)/reelPosts.length):0;
@@ -963,7 +967,7 @@ function renderIgChart(posts,campKey,w){
   const peakHtml=peakDayPosts.length>0
     ?'피크 전일/당일 업로드 '+peakDayPosts.length+'개 — 총 댓글 <strong>'+peakCommentTotal+'개</strong>, 조회수 <strong>'+peakViewTotal.toLocaleString()+'회</strong>. '+(peakCommentTotal>50?'높은 댓글 반응이 매출 피크와 연동됩니다. 다음 차수에도 피크 예상일 전날 집중 업로드를 유지하세요.':'피크 전 콘텐츠 반응이 제한적입니다. 다음 차수엔 피크 D-2부터 일 3개 이상 업로드를 시도해보세요.')
     :'피크 시점 게시물 데이터가 부족합니다.';
-  const reuseHtml=maxCommentPost.label&&maxCommentPost.comments>20?'"'+maxCommentPost.label+'" 포맷(댓글 '+maxCommentPost.comments+'개) 재활용 — 동일 포맷으로 공구 D-3 선공개. ':'';
+  const reuseHtml=maxCommentPost&&maxCommentPost.comments>20?'"'+maxPostTitle+'" 포맷(댓글 '+maxCommentPost.comments+'개) 재활용 — 동일 포맷으로 공구 D-3 선공개. ':'';
 
   ins.innerHTML=
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">'+
@@ -973,8 +977,8 @@ function renderIgChart(posts,campKey,w){
     '</div>'+
     '<div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:10px 14px">'+
     '<div style="font-size:10px;color:var(--text3);margin-bottom:4px">최고 반응 게시물</div>'+
-    '<div style="font-size:13px;font-weight:600">'+(maxCommentPost.label||'—')+'</div>'+
-    '<div style="font-size:11px;color:var(--text2)">댓글 '+maxCommentPost.comments+'개 · 조회 '+maxViewPost.views.toLocaleString()+'회</div>'+
+    '<div style="font-size:12px;font-weight:600;line-height:1.4">'+maxPostTitle+'</div>'+
+    '<div style="font-size:11px;color:var(--text2)">댓글 '+(maxCommentPost?maxCommentPost.comments:0)+'개 · 조회 '+(maxViewPost?maxViewPost.views.toLocaleString():0)+'회</div>'+
     '</div></div>'+
     '<div style="font-size:13px;line-height:1.9;color:var(--text)">'+
     '<strong>콘텐츠-매출 상관 분석</strong><br>'+topSignal+' '+reelAvgHtml+reelRoleHtml+'<br><br>'+
