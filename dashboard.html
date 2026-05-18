@@ -157,16 +157,90 @@ html{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
 
 /* SECTION TITLE */
 .section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);margin:20px 0 10px}
+@media(max-width:640px){.mob-hide{display:none!important}}
 
 @media(max-width:640px){
-  .summary-grid{grid-template-columns:repeat(2,1fr)}
-  .funnel-grid{grid-template-columns:repeat(2,1fr)}
-  .fn-step::after{display:none}
+  /* 레이아웃 */
+  .wrap{padding:12px 14px 80px}
+  .camp-bar{padding:12px 14px 0;gap:6px}
+  .nav{padding:0 14px;height:48px}
+  .nav-logo{font-size:11px}
+
+  /* KPI 카드 - 2열 */
+  .summary-grid{grid-template-columns:repeat(2,1fr)!important;gap:8px}
+  .sk{padding:12px 14px}
+  .sk-val{font-size:17px}
+  .sk-label{font-size:9px;margin-bottom:5px}
+  .sk-sub{font-size:10px}
+
+  /* 2열 → 1열 */
   .two-col,.month-grid{grid-template-columns:1fr}
-  .strength-row{grid-template-columns:1fr}
-  .wrap{padding:16px 16px 60px}
-  .camp-bar{padding:14px 16px 0}
-  .nav{padding:0 16px}
+  .strength-row{grid-template-columns:1fr;gap:6px}
+
+  /* 퍼널 - 2×2 */
+  .funnel-grid{grid-template-columns:repeat(2,1fr);gap:12px;margin-top:10px}
+  .fn-step::after{display:none}
+  .fn-num{font-size:16px}
+  .fn-label{font-size:11px}
+  .fn-bar-wrap{height:50px}
+
+  /* 차트 카드 */
+  .cc{padding:14px 14px;margin-bottom:10px}
+  .cc-head{margin-bottom:12px;gap:8px}
+  .cc-title{font-size:13px}
+  .cc-sub{font-size:11px}
+  .leg-row{gap:8px}
+  .leg{font-size:10px}
+
+  /* 테이블 - 모바일 최적화 */
+  .week-table{font-size:11px}
+  .week-table th{padding:6px 6px;font-size:9px;letter-spacing:0}
+  .week-table td{padding:8px 6px;font-size:11px}
+
+  /* 옵션별 테이블 - 모바일에서 컬럼 축소 */
+  #optionBody tr td:nth-child(3),
+  #optionBody tr td:nth-child(5),
+  #optionBody tr th:nth-child(3),
+  #optionBody tr th:nth-child(5){display:none}
+
+  /* 캠프 메타 */
+  .camp-meta{gap:8px;margin-bottom:12px}
+  .camp-badge{font-size:10px;padding:3px 10px}
+  .camp-period{font-size:11px}
+  .camp-tag{font-size:10px}
+
+  /* 인스타 섹션 */
+  .ig-ctrl{gap:8px}
+  .ig-ctrl-label{font-size:11px}
+  .ig-win-val{font-size:11px;min-width:80px}
+  .ig-load-btn{font-size:12px;padding:9px}
+  .sc{padding:10px 12px}
+  .sc-label{font-size:10px}
+  .sc-verdict{font-size:11px}
+  .pin-layer{height:36px}
+  .pin-line{height:14px}
+
+  /* 이탈 섹션 */
+  #abandonCard .sk-label{font-size:10px}
+
+  /* AI 카드 */
+  .ai-card{padding:14px 16px}
+  .ai-text{font-size:12px;line-height:1.7}
+
+  /* 월별 카드 */
+  .mc-name{font-size:12px}
+  .mc-period{font-size:10px}
+  .mc-stat-val{font-size:14px}
+  .mc-stat-label{font-size:8px}
+  .mc-stats{gap:12px}
+}
+
+/* 옵션 테이블 모바일 헤더 숨김 */
+@media(max-width:640px){
+  #optionCard .week-table thead tr th:nth-child(3),
+  #optionCard .week-table thead tr th:nth-child(5),
+  #optionCard .week-table tbody tr td:nth-child(3),
+  #optionCard .week-table tbody tr td:nth-child(5){display:none}
 }
 </style>
 </head>
@@ -268,10 +342,16 @@ html{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
       <div class="cc-sub" id="optionTotal">—</div>
     </div>
     <div style="overflow-x:auto">
-      <table class="week-table">
+      <table class="week-table" id="optionTable">
         <thead><tr>
-          <th>옵션명</th><th class="r">판매건수</th><th class="r">수량</th>
-          <th class="r">매출</th><th class="r">원가</th><th class="r">마진</th><th class="r">비중</th><th style="width:60px"></th>
+          <th>옵션명</th>
+          <th class="r">판매건수</th>
+          <th class="r mob-hide">수량</th>
+          <th class="r">매출</th>
+          <th class="r mob-hide">원가</th>
+          <th class="r">마진</th>
+          <th class="r">비중</th>
+          <th style="width:60px"></th>
         </tr></thead>
         <tbody id="optionBody"></tbody>
       </table>
@@ -691,11 +771,11 @@ function renderOptions(c){
     const marginRate=margin&&o.sales>0?Math.round(margin/o.sales*100):null;
     const name=o.name.length>22?o.name.slice(0,22)+'…':o.name;
     return `<tr>
-      <td class="bold" title="${o.name}">${name}</td>
+      <td class="bold" title="${o.name}" style="max-width:120px;word-break:keep-all">${name}</td>
       <td class="r">${fmt(o.orders)}건</td>
-      <td class="r">${fmt(o.qty)}개</td>
+      <td class="r mob-hide">${fmt(o.qty)}개</td>
       <td class="r bold" style="color:var(--text)">${fmtW(o.sales)}원</td>
-      <td class="r" style="color:var(--text2)">${o.cost?fmtW(o.cost)+'원':'—'}</td>
+      <td class="r mob-hide" style="color:var(--text2)">${o.cost?fmtW(o.cost)+'원':'—'}</td>
       <td class="r" style="color:#a78bfa">${margin?fmtW(margin)+'원 ('+marginRate+'%)':'—'}</td>
       <td class="r" style="color:${colors[i%colors.length]};font-weight:600">${sp}%</td>
       <td><div style="height:4px;background:var(--surface3);border-radius:2px"><div style="height:4px;border-radius:2px;background:${colors[i%colors.length]};width:${sp}%"></div></div></td>
