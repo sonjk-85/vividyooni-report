@@ -91,15 +91,18 @@ html{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
 .week-table tfoot td{border-top:1px solid var(--border2);font-weight:700;color:var(--text);padding:9px 10px}
 .week-table tfoot td.r{text-align:right;font-family:'DM Mono',monospace;color:var(--green)}
 
-/* FUNNEL */
-.funnel-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:14px}
-.fn-step{text-align:center;position:relative;padding:0 6px}
-.fn-step:not(:last-child)::after{content:'→';position:absolute;right:-8px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;margin-top:-8px}
-.fn-bar-wrap{height:70px;display:flex;align-items:flex-end;justify-content:center;margin-bottom:8px}
-.fn-bar{width:55%;border-radius:4px 4px 0 0}
-.fn-num{font-size:15px;font-weight:700;font-family:'DM Mono',monospace}
-.fn-label{font-size:10px;color:var(--text2);margin-top:3px}
-.fn-rate{font-size:11px;font-weight:600;margin-top:3px}
+/* FUNNEL - 숫자 중심 가로 흐름 */
+.funnel-flow{display:flex;align-items:stretch;gap:0;margin-top:14px;background:var(--surface2);border-radius:var(--r);padding:18px 14px;flex-wrap:nowrap}
+.fn-node{flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;padding:0 4px;min-width:0}
+.fn-icon{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:8px;font-size:18px}
+.fn-num{font-size:18px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:-.3px;line-height:1.1}
+.fn-label{font-size:10px;color:var(--text3);margin-top:4px;font-weight:500}
+.fn-arrow{display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text3);padding:0 2px;min-width:42px;flex-shrink:0}
+.fn-arrow-line{font-size:14px;line-height:1;opacity:.5}
+.fn-arrow-rate{font-size:11px;font-weight:700;margin-top:3px;font-family:'DM Mono',monospace}
+.fn-loss{background:var(--red-dim);border:1px solid rgba(255,77,77,0.25);border-radius:var(--r);padding:12px 16px;margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.fn-loss-label{font-size:11px;color:var(--text2);display:flex;align-items:center;gap:6px}
+.fn-loss-val{font-size:16px;font-weight:700;color:var(--red);font-family:'DM Mono',monospace}
 
 /* INSTAGRAM SECTION */
 .ig-ctrl{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
@@ -177,12 +180,16 @@ html{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
   .two-col,.month-grid{grid-template-columns:1fr}
   .strength-row{grid-template-columns:1fr;gap:6px}
 
-  /* 퍼널 - 2×2 */
-  .funnel-grid{grid-template-columns:repeat(2,1fr);gap:12px;margin-top:10px}
-  .fn-step::after{display:none}
-  .fn-num{font-size:16px}
-  .fn-label{font-size:11px}
-  .fn-bar-wrap{height:50px}
+  /* 퍼널 - 모바일 */
+  .funnel-flow{padding:14px 8px}
+  .fn-icon{width:32px;height:32px;font-size:15px;margin-bottom:6px}
+  .fn-num{font-size:15px}
+  .fn-label{font-size:9px}
+  .fn-arrow{min-width:24px;padding:0}
+  .fn-arrow-line{font-size:12px}
+  .fn-arrow-rate{font-size:10px}
+  .fn-loss-label{font-size:10px}
+  .fn-loss-val{font-size:14px}
 
   /* 차트 카드 */
   .cc{padding:14px 14px;margin-bottom:10px}
@@ -192,24 +199,14 @@ html{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
   .leg-row{gap:8px}
   .leg{font-size:10px}
 
-  /* 테이블 - 모바일 최적화 */
+  /* 테이블 - 모바일 최적화: 모든 컬럼 유지, 폰트만 축소 */
   .week-table{font-size:11px}
-  .week-table th{padding:6px 4px;font-size:9px;letter-spacing:0}
-  .week-table td{padding:9px 4px;font-size:11px;white-space:nowrap}
-  .week-table td.r{font-size:11px}
+  .week-table th{padding:6px 5px;font-size:9px;letter-spacing:0;white-space:nowrap}
+  .week-table td{padding:8px 5px;font-size:11px;white-space:nowrap}
 
-  /* 일별 집계 - 모바일에서는 매출/주문/비중만 (게시물, 조회수, 댓글, 진행바 숨김) */
-  #weekSection thead tr th:nth-child(5),
-  #weekSection thead tr th:nth-child(6),
-  #weekSection thead tr th:nth-child(7),
+  /* 일별 집계: 진행바 셀 너무 좁게 - 숨김 (인스타 데이터는 살림) */
   #weekSection thead tr th:nth-child(8),
-  #weekSection tbody tr td:nth-child(5),
-  #weekSection tbody tr td:nth-child(6),
-  #weekSection tbody tr td:nth-child(7),
   #weekSection tbody tr td:nth-child(8),
-  #weekSection tfoot tr td:nth-child(5),
-  #weekSection tfoot tr td:nth-child(6),
-  #weekSection tfoot tr td:nth-child(7),
   #weekSection tfoot tr td:nth-child(8){display:none}
 
   /* 옵션별 테이블 - 수량/원가 숨김 (mob-hide 클래스 사용) */
@@ -349,7 +346,8 @@ html{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
     </div>
     <div class="cc" style="margin-bottom:0">
       <div class="cc-head"><div class="cc-title">구매 퍼널</div></div>
-      <div class="funnel-grid" id="funnelGrid"></div>
+      <div class="funnel-flow" id="funnelGrid"></div>
+      <div class="fn-loss" id="funnelLoss" style="display:none"></div>
     </div>
   </div>
 
@@ -895,25 +893,41 @@ function renderSalesChart(c,color){
 }
 
 function renderFunnel(c){
+  // 3단계 흐름: 페이지뷰 → 장바구니 → 구매완료
   const steps=[
-    {label:'페이지뷰',val:c.pv,color:'var(--blue)'},
-    {label:'장바구니',val:c.cartCount,color:'var(--amber)'},
-    {label:'구매완료',val:c.orders,color:'var(--green)'},
-    {label:'이탈 손실',val:c.lost,color:'var(--red)',isMoney:true},
+    {label:'페이지뷰',val:c.pv,color:'var(--blue)',bg:'rgba(74,158,255,0.15)',icon:'👁'},
+    {label:'장바구니',val:c.cartCount,color:'var(--amber)',bg:'rgba(245,166,35,0.15)',icon:'🛒'},
+    {label:'구매완료',val:c.orders,color:'var(--green)',bg:'rgba(0,201,122,0.15)',icon:'✓'},
   ];
-  // sqrt 스케일로 시각적 균형 (페이지뷰가 너무 압도하지 않도록)
-  const numVals=steps.filter(s=>!s.isMoney).map(s=>s.val);
-  const maxSqrt=Math.sqrt(Math.max(...numVals,1));
-  document.getElementById('funnelGrid').innerHTML=steps.map((s,i)=>{
-    const h=s.isMoney?40:Math.max(14,Math.round((Math.sqrt(s.val||0)/maxSqrt)*70));
-    const rate=i>0&&!s.isMoney?` (${pct(s.val,steps[i-1].val)})`:'';
-    return `<div class="fn-step">
-      <div class="fn-bar-wrap"><div class="fn-bar" style="height:${h}px;background:${s.color};opacity:0.85"></div></div>
-      <div class="fn-num" style="color:${s.color}">${s.isMoney?fmtW(s.val)+'원':fmt(s.val)}</div>
+  let html='';
+  steps.forEach((s,i)=>{
+    if(i>0){
+      const prev=steps[i-1].val;
+      const rate=prev>0?(s.val/prev*100):0;
+      const rateStr=rate>=10?rate.toFixed(0)+'%':rate.toFixed(1)+'%';
+      const rateColor=rate>=30?'var(--green)':rate>=10?'var(--amber)':'var(--red)';
+      html+=`<div class="fn-arrow">
+        <div class="fn-arrow-line">›</div>
+        <div class="fn-arrow-rate" style="color:${rateColor}">${rateStr}</div>
+      </div>`;
+    }
+    html+=`<div class="fn-node">
+      <div class="fn-icon" style="background:${s.bg};color:${s.color}">${s.icon}</div>
+      <div class="fn-num" style="color:${s.color}">${fmt(s.val)}</div>
       <div class="fn-label">${s.label}</div>
-      <div class="fn-rate" style="color:${s.color}">${rate}</div>
     </div>`;
-  }).join('');
+  });
+  document.getElementById('funnelGrid').innerHTML=html;
+
+  // 이탈 손실은 별도 카드로
+  const lossEl=document.getElementById('funnelLoss');
+  if(c.lost>0){
+    lossEl.style.display='flex';
+    lossEl.innerHTML=`<div class="fn-loss-label">⚠ 장바구니 이탈로 잃은 매출</div>
+      <div class="fn-loss-val">${fmtW(c.lost)}원</div>`;
+  } else {
+    lossEl.style.display='none';
+  }
 }
 
 /* ─── Instagram ─── */
