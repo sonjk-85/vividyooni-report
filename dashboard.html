@@ -377,7 +377,8 @@ html{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
 <script>
 const SUPABASE_URL='https://kcycwyxstbohbleezlog.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_jP9l8azSMDD2S5Af2tiFoA_xQsjFids';
-const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+let sb;
+try { sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY); } catch(e) { sb=null; }
 
 const CAMP_COLORS={'에어스텝퍼':'#4a9eff','괄사빗':'#00c97a','더핏':'#ff6b9d','작영오일':'#f5a623','베이키드콘':'#a78bfa','기타':'#888884','all':'#f0f0ee'};
 
@@ -453,6 +454,7 @@ const CAMPAIGNS={
       {date:'2026-05-06',sales:184700,orders:4}
     ]
   },
+  '작영오일':{
     label:'작영 트리플에이 에너지오일 1차',start:'2026-04-27',end:'2026-05-06',
     products:['작영 트리플에이 에너지오일 1차'],
     igKeywords:['에너지오일','트리플에이','오일','작영'],
@@ -883,33 +885,36 @@ function renderIgChart(posts,campKey,w){
   const peakSaleDay=camp.daily.reduce((a,b)=>b.sales>a.sales?b:a,camp.daily[0]);
   const peakDayPosts=fp.filter(p=>p.date===peakSaleDay.date||p.date===camp.daily[Math.max(0,camp.daily.findIndex(d=>d.date===peakSaleDay.date)-1)]?.date);
 
-  const topSignal=top.r>0.5?`<strong style="color:var(--green)">${top.n}</strong>이 매출과 강하게 연동됩니다 (${Math.round(Math.abs(top.r)*100)}% 일치율).`
-    :top.r>0.3?`<strong>${top.n}</strong>이 매출과 어느 정도 연동됩니다 (${Math.round(Math.abs(top.r)*100)}% 일치율).`
+  const topSignal=top.r>0.5?'<strong style="color:var(--green)">'+top.n+'</strong>이 매출과 강하게 연동됩니다 ('+Math.round(Math.abs(top.r)*100)+'% 일치율).'
+    :top.r>0.3?'<strong>'+top.n+'</strong>이 매출과 어느 정도 연동됩니다 ('+Math.round(Math.abs(top.r)*100)+'% 일치율).'
     :'현재 데이터만으로는 단일 지표와 매출의 명확한 패턴을 확인하기 어렵습니다. 공구를 반복할수록 신뢰도가 높아집니다.';
 
-  ins.innerHTML=`
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-    <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:10px 14px">
-      <div style="font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.6px">분석 게시물</div>
-      <div style="font-size:16px;font-weight:700">${fp.length}개 <span style="font-size:11px;color:var(--text2);font-weight:400">(사전 ${prePostsCount} + 공구기간 ${inPostsCount})</span></div>
-    </div>
-    <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:10px 14px">
-      <div style="font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.6px">최고 반응 게시물</div>
-      <div style="font-size:13px;font-weight:600">${maxCommentPost.label||'—'}</div>
-      <div style="font-size:11px;color:var(--text2)">댓글 ${maxCommentPost.comments}개 · 조회 ${maxViewPost.views.toLocaleString()}회</div>
-    </div>
-  </div>
-  <div style="font-size:13px;line-height:1.9;color:var(--text)">
-    <strong>콘텐츠-매출 상관 분석</strong><br>
-    ${topSignal}
-    ${avgReelViews>0?`릴스 평균 조회수 <strong>${avgReelViews.toLocaleString()}회</strong>, 카드뉴스 평균 댓글 <strong>${avgCardComments}개</strong> — `:''}
-    ${avgReelViews>5000&&avgCardComments>20?'릴스는 도달(노출), 카드뉴스는 구매 의향 시그널 역할로 역할 분담이 작동하고 있습니다.':avgReelViews>5000?'릴스 도달은 충분하나 댓글(구매 의향 시그널)이 부족합니다. CTA 강화를 검토하세요.':'콘텐츠 도달 규모를 높이는 것이 우선 과제입니다.'}<br><br>
-    <strong>피크 매출일(${peakSaleDay.date.slice(5)}) 전후 게시물 분석</strong><br>
-    ${peakDayPosts.length>0?`피크 전일/당일 업로드 ${peakDayPosts.length}개 — 총 댓글 <strong>${peakDayPosts.reduce((a,p)=>a+p.comments,0)}개</strong>, 조회수 <strong>${peakDayPosts.reduce((a,p)=>a+p.views,0).toLocaleString()}회</strong>. ${peakDayPosts.reduce((a,p)=>a+p.comments,0)>50?'높은 댓글 반응이 매출 피크와 연동됩니다. 다음 차수에도 피크 예상일 전날 집중 업로드를 유지하세요.':'피크 전 콘텐츠 반응이 제한적입니다. 다음 차수엔 피크 D-2부터 일 3개 이상 업로드를 시도해보세요.'}`:'피크 시점 게시물 데이터가 부족합니다.'}<br><br>
-    <strong>다음 공구 콘텐츠 전략 제안</strong><br>
-    ${maxCommentPost.label&&maxCommentPost.comments>20?`"${maxCommentPost.label}" 포맷(댓글 ${maxCommentPost.comments}개) 재활용 — 동일 포맷으로 공구 D-3 선공개. `:''}
-    업로드 ${W_LABELS[w]} 내 전환이 가장 높은 구간 → 해당 시점 집중 배치 권장.
-  </div>`;
+  const reelAvgHtml=avgReelViews>0?'릴스 평균 조회수 <strong>'+avgReelViews.toLocaleString()+'회</strong>, 카드뉴스 평균 댓글 <strong>'+avgCardComments+'개</strong> — ':'';
+  const reelRoleHtml=avgReelViews>5000&&avgCardComments>20?'릴스는 도달(노출), 카드뉴스는 구매 의향 시그널 역할로 역할 분담이 작동하고 있습니다.':avgReelViews>5000?'릴스 도달은 충분하나 댓글(구매 의향 시그널)이 부족합니다. CTA 강화를 검토하세요.':'콘텐츠 도달 규모를 높이는 것이 우선 과제입니다.';
+  const peakCommentTotal=peakDayPosts.reduce(function(a,p){return a+p.comments;},0);
+  const peakViewTotal=peakDayPosts.reduce(function(a,p){return a+p.views;},0);
+  const peakHtml=peakDayPosts.length>0
+    ?'피크 전일/당일 업로드 '+peakDayPosts.length+'개 — 총 댓글 <strong>'+peakCommentTotal+'개</strong>, 조회수 <strong>'+peakViewTotal.toLocaleString()+'회</strong>. '+(peakCommentTotal>50?'높은 댓글 반응이 매출 피크와 연동됩니다. 다음 차수에도 피크 예상일 전날 집중 업로드를 유지하세요.':'피크 전 콘텐츠 반응이 제한적입니다. 다음 차수엔 피크 D-2부터 일 3개 이상 업로드를 시도해보세요.')
+    :'피크 시점 게시물 데이터가 부족합니다.';
+  const reuseHtml=maxCommentPost.label&&maxCommentPost.comments>20?'"'+maxCommentPost.label+'" 포맷(댓글 '+maxCommentPost.comments+'개) 재활용 — 동일 포맷으로 공구 D-3 선공개. ':'';
+
+  ins.innerHTML=
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">'+
+    '<div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:10px 14px">'+
+    '<div style="font-size:10px;color:var(--text3);margin-bottom:4px">분석 게시물</div>'+
+    '<div style="font-size:16px;font-weight:700">'+fp.length+'개 <span style="font-size:11px;color:var(--text2);font-weight:400">(사전 '+prePostsCount+' + 공구기간 '+inPostsCount+')</span></div>'+
+    '</div>'+
+    '<div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:10px 14px">'+
+    '<div style="font-size:10px;color:var(--text3);margin-bottom:4px">최고 반응 게시물</div>'+
+    '<div style="font-size:13px;font-weight:600">'+(maxCommentPost.label||'—')+'</div>'+
+    '<div style="font-size:11px;color:var(--text2)">댓글 '+maxCommentPost.comments+'개 · 조회 '+maxViewPost.views.toLocaleString()+'회</div>'+
+    '</div></div>'+
+    '<div style="font-size:13px;line-height:1.9;color:var(--text)">'+
+    '<strong>콘텐츠-매출 상관 분석</strong><br>'+topSignal+' '+reelAvgHtml+reelRoleHtml+'<br><br>'+
+    '<strong>피크 매출일('+peakSaleDay.date.slice(5)+') 전후 게시물 분석</strong><br>'+peakHtml+'<br><br>'+
+    '<strong>다음 공구 콘텐츠 전략 제안</strong><br>'+reuseHtml+
+    '업로드 '+W_LABELS[w]+' 내 전환이 가장 높은 구간 → 해당 시점 집중 배치 권장.'+
+    '</div>';
 }
 
 function buildPins(posts,campKey,w,allDates,salesByDate){
@@ -994,17 +999,19 @@ async function loadIgData(){
 
   // Supabase에서 먼저 확인
   try{
-    const {data}=await sb.from('instagram_posts').select('*').order('date');
-    if(data&&data.length>0){
-      igPosts=data.map(r=>({
-        date:r.date,time:r.time,type:r.type,
-        views:r.views,comments:r.comments,
-        label:r.caption?.slice(0,20)||'',caption:r.caption||'',
-        url:r.url
-      }));
-      igLoaded=true;loaded=true;
-      document.getElementById('igLoadIcon').textContent='✓';
-      document.getElementById('igLoadText').textContent=`${igPosts.length}개 게시물 로드됨 (저장된 데이터)`;
+    if(sb) {
+      const {data}=await sb.from('instagram_posts').select('*').order('date');
+      if(data&&data.length>0){
+        igPosts=data.map(r=>({
+          date:r.date,time:r.time,type:r.type,
+          views:r.views,comments:r.comments,
+          label:r.caption?.slice(0,20)||'',caption:r.caption||'',
+          url:r.url
+        }));
+        igLoaded=true;loaded=true;
+        document.getElementById('igLoadIcon').textContent='✓';
+        document.getElementById('igLoadText').textContent=`${igPosts.length}개 게시물 로드됨 (저장된 데이터)`;
+      }
     }
   }catch(e){}
 
@@ -1189,7 +1196,11 @@ function selectCampFromMonth(key){
 }
 
 // 초기 렌더
-renderCamp('에어스텝퍼');
+try {
+  const initBtn = document.querySelector('.camp-btn[data-c="에어스텝퍼"]');
+  if(initBtn) selectCamp('에어스텝퍼', initBtn);
+  else renderCamp('에어스텝퍼');
+} catch(e) { console.error('init error:', e); }
 </script>
 </body>
 </html>
