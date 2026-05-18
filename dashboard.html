@@ -194,10 +194,25 @@ html{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
 
   /* 테이블 - 모바일 최적화 */
   .week-table{font-size:11px}
-  .week-table th{padding:6px 6px;font-size:9px;letter-spacing:0}
-  .week-table td{padding:8px 6px;font-size:11px}
+  .week-table th{padding:6px 4px;font-size:9px;letter-spacing:0}
+  .week-table td{padding:9px 4px;font-size:11px;white-space:nowrap}
+  .week-table td.r{font-size:11px}
 
-  /* 옵션별 테이블 - 모바일에서 컬럼 축소 */
+  /* 일별 집계 - 모바일에서는 매출/주문/비중만 (게시물, 조회수, 댓글, 진행바 숨김) */
+  #weekSection thead tr th:nth-child(5),
+  #weekSection thead tr th:nth-child(6),
+  #weekSection thead tr th:nth-child(7),
+  #weekSection thead tr th:nth-child(8),
+  #weekSection tbody tr td:nth-child(5),
+  #weekSection tbody tr td:nth-child(6),
+  #weekSection tbody tr td:nth-child(7),
+  #weekSection tbody tr td:nth-child(8),
+  #weekSection tfoot tr td:nth-child(5),
+  #weekSection tfoot tr td:nth-child(6),
+  #weekSection tfoot tr td:nth-child(7),
+  #weekSection tfoot tr td:nth-child(8){display:none}
+
+  /* 옵션별 테이블 - 수량/원가 숨김 (mob-hide 클래스 사용) */
   #optionBody tr td:nth-child(3),
   #optionBody tr td:nth-child(5),
   #optionBody tr th:nth-child(3),
@@ -222,6 +237,8 @@ html{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
 
   /* 이탈 섹션 */
   #abandonCard .sk-label{font-size:10px}
+  #abandonCard > div[style*="display:flex"]{display:grid!important;grid-template-columns:repeat(3,1fr)!important;gap:8px!important}
+  #abandonCard > div[style*="display:flex"] > div > div:last-child{font-size:16px!important}
 
   /* AI 카드 */
   .ai-card{padding:14px 16px}
@@ -241,6 +258,20 @@ html{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
   #optionCard .week-table thead tr th:nth-child(5),
   #optionCard .week-table tbody tr td:nth-child(3),
   #optionCard .week-table tbody tr td:nth-child(5){display:none}
+
+  /* 옵션명 셀 - 두 줄 허용하되 적절한 최대 폭 */
+  #optionBody tr td:first-child{
+    max-width:none!important;
+    white-space:normal;
+    line-height:1.35;
+    word-break:keep-all;
+    min-width:90px
+  }
+  /* 마진/비중 셀은 줄바꿈 금지 */
+  #optionBody tr td.r{white-space:nowrap}
+  /* 진행바 셀 폭 축소 */
+  #optionTable thead tr th:last-child,
+  #optionBody tr td:last-child{width:36px;min-width:36px;padding-left:4px;padding-right:0}
 }
 </style>
 </head>
@@ -776,7 +807,7 @@ function renderOptions(c){
       <td class="r mob-hide">${fmt(o.qty)}개</td>
       <td class="r bold" style="color:var(--text)">${fmtW(o.sales)}원</td>
       <td class="r mob-hide" style="color:var(--text2)">${o.cost?fmtW(o.cost)+'원':'—'}</td>
-      <td class="r" style="color:#a78bfa">${margin?fmtW(margin)+'원 ('+marginRate+'%)':'—'}</td>
+      <td class="r" style="color:#a78bfa;line-height:1.35">${margin?fmtW(margin)+'원<br><span style="font-size:10px;opacity:.75">('+marginRate+'%)</span>':'—'}</td>
       <td class="r" style="color:${colors[i%colors.length]};font-weight:600">${sp}%</td>
       <td><div style="height:4px;background:var(--surface3);border-radius:2px"><div style="height:4px;border-radius:2px;background:${colors[i%colors.length]};width:${sp}%"></div></div></td>
     </tr>`;
@@ -870,9 +901,11 @@ function renderFunnel(c){
     {label:'구매완료',val:c.orders,color:'var(--green)'},
     {label:'이탈 손실',val:c.lost,color:'var(--red)',isMoney:true},
   ];
-  const maxV=Math.max(c.pv,c.cartCount,c.orders);
+  // sqrt 스케일로 시각적 균형 (페이지뷰가 너무 압도하지 않도록)
+  const numVals=steps.filter(s=>!s.isMoney).map(s=>s.val);
+  const maxSqrt=Math.sqrt(Math.max(...numVals,1));
   document.getElementById('funnelGrid').innerHTML=steps.map((s,i)=>{
-    const h=s.isMoney?40:Math.max(12,Math.round((s.val/maxV)*70));
+    const h=s.isMoney?40:Math.max(14,Math.round((Math.sqrt(s.val||0)/maxSqrt)*70));
     const rate=i>0&&!s.isMoney?` (${pct(s.val,steps[i-1].val)})`:'';
     return `<div class="fn-step">
       <div class="fn-bar-wrap"><div class="fn-bar" style="height:${h}px;background:${s.color};opacity:0.85"></div></div>
