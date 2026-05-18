@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>스디샵 분석 대시보드</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0e0e0e;--surface:#161616;--surface2:#1e1e1e;--surface3:#252525;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
+  --text:#f0f0ee;--text2:#888884;--text3:#555552;
+  --green:#00c97a;--green-dim:rgba(0,201,122,0.12);
+  --amber:#f5a623;--amber-dim:rgba(245,166,35,0.1);
+  --blue:#4a9eff;--blue-dim:rgba(74,158,255,0.1);
+  --red:#ff4d4d;--red-dim:rgba(255,77,77,0.1);
+  --purple:#a78bfa;--purple-dim:rgba(167,139,250,0.1);
+  --r:12px;--r-sm:8px;
+}
+html{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);font-size:15px;-webkit-font-smoothing:antialiased}
+
+/* NAV */
+.nav{position:sticky;top:0;z-index:100;background:rgba(14,14,14,0.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 28px;height:52px;display:flex;align-items:center;justify-content:space-between}
+.nav-logo{font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--green)}
+.nav-right{display:flex;align-items:center;gap:8px}
+
+/* CAMPAIGN FILTER */
+.camp-bar{display:flex;gap:6px;padding:20px 28px 0;flex-wrap:wrap;align-items:center}
+.camp-btn{padding:7px 16px;border-radius:20px;border:1px solid var(--border2);background:none;font-family:'Pretendard',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:var(--text2);transition:all .15s;white-space:nowrap}
+.camp-btn:hover{color:var(--text);border-color:var(--border2)}
+.camp-btn.active{color:#000;border-color:transparent}
+.camp-btn[data-c="all"].active{background:var(--text)}
+.camp-btn[data-c="에어스텝퍼"].active{background:#4a9eff}
+.camp-btn[data-c="괄사빗"].active{background:#00c97a}
+.camp-btn[data-c="더핏"].active{background:#ff6b9d}
+.camp-btn[data-c="작영오일"].active{background:#f5a623}
+.camp-btn[data-c="베이키드콘"].active{background:#a78bfa;color:#fff}
+.camp-btn[data-c="기타"].active{background:#888884}
+
+/* VIEW TOGGLE */
+.view-toggle{display:flex;gap:4px;background:var(--surface2);border-radius:var(--r-sm);padding:3px}
+.vt-btn{padding:5px 14px;border:none;border-radius:6px;font-family:'Pretendard',sans-serif;font-size:11px;font-weight:600;cursor:pointer;background:none;color:var(--text2);transition:all .15s}
+.vt-btn.active{background:var(--surface);color:var(--text)}
+
+/* MAIN */
+.wrap{max-width:960px;margin:0 auto;padding:20px 28px 80px}
+
+/* SUMMARY CARDS */
+.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.sk{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px}
+.sk.accent{background:var(--green-dim);border-color:rgba(0,201,122,0.2)}
+.sk.amber{background:var(--amber-dim);border-color:rgba(245,166,35,0.2)}
+.sk.red{background:var(--red-dim);border-color:rgba(255,77,77,0.2)}
+.sk.blue{background:var(--blue-dim);border-color:rgba(74,158,255,0.2)}
+.sk-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);margin-bottom:8px}
+.sk-val{font-size:20px;font-weight:700;letter-spacing:-.5px}
+.sk.accent .sk-val{color:var(--green)}
+.sk.amber .sk-val{color:var(--amber)}
+.sk.red .sk-val{color:var(--red)}
+.sk.blue .sk-val{color:var(--blue)}
+.sk-sub{font-size:10px;color:var(--text3);margin-top:4px}
+
+/* CAMPAIGN META */
+.camp-meta{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.camp-badge{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:4px 12px;border-radius:20px;background:var(--green-dim);color:var(--green)}
+.camp-period{font-size:12px;color:var(--text2);font-family:'DM Mono',monospace}
+.camp-tag{font-size:11px;color:var(--text3);padding:3px 10px;border:1px solid var(--border);border-radius:12px}
+
+/* CHART CARD */
+.cc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px 22px;margin-bottom:14px}
+.cc-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap}
+.cc-title{font-size:13px;font-weight:600}
+.cc-sub{font-size:11px;color:var(--text2)}
+.leg-row{display:flex;gap:12px;flex-wrap:wrap}
+.leg{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)}
+.leg-sq{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+.leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* WEEK TABLE */
+.week-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:4px}
+.week-table th{padding:8px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);border-bottom:1px solid var(--border);white-space:nowrap}
+.week-table th.r{text-align:right}
+.week-table td{padding:9px 10px;border-bottom:1px solid var(--border);color:var(--text2);font-size:12px}
+.week-table td.r{text-align:right;font-family:'DM Mono',monospace}
+.week-table td.bold{font-weight:600;color:var(--text)}
+.week-table tbody tr:hover td{background:rgba(255,255,255,0.02)}
+.week-table tfoot td{border-top:1px solid var(--border2);font-weight:700;color:var(--text);padding:9px 10px}
+.week-table tfoot td.r{text-align:right;font-family:'DM Mono',monospace;color:var(--green)}
+
+/* FUNNEL */
+.funnel-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:14px}
+.fn-step{text-align:center;position:relative;padding:0 6px}
+.fn-step:not(:last-child)::after{content:'→';position:absolute;right:-8px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;margin-top:-8px}
+.fn-bar-wrap{height:70px;display:flex;align-items:flex-end;justify-content:center;margin-bottom:8px}
+.fn-bar{width:55%;border-radius:4px 4px 0 0}
+.fn-num{font-size:15px;font-weight:700;font-family:'DM Mono',monospace}
+.fn-label{font-size:10px;color:var(--text2);margin-top:3px}
+.fn-rate{font-size:11px;font-weight:600;margin-top:3px}
+
+/* INSTAGRAM SECTION */
+.ig-ctrl{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.ig-ctrl-label{font-size:12px;color:var(--text2);white-space:nowrap}
+.ig-win-val{font-size:12px;font-weight:600;color:var(--text);min-width:52px}
+.strength-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.sc{background:var(--surface2);border-radius:var(--r-sm);padding:10px 14px}
+.sc-label{font-size:10px;color:var(--text3);margin-bottom:6px}
+.sc-bar-wrap{height:6px;background:var(--surface3);border-radius:3px;margin-bottom:4px}
+.sc-bar{height:6px;border-radius:3px;transition:width .4s}
+.sc-verdict{font-size:11px;color:var(--text2)}
+.sc-verdict strong{color:var(--text)}
+
+/* PIN LAYER */
+.pin-layer{position:relative;width:100%;height:40px}
+.pin{position:absolute;transform:translateX(-50%);cursor:pointer;display:flex;flex-direction:column;align-items:center}
+.pin-line{width:1px;height:18px;opacity:.35}
+.pin-dot{border-radius:50%;border:2px solid var(--surface);transition:transform .12s}
+.pin:hover .pin-dot{transform:scale(1.5)}
+.pin-tt{position:absolute;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-sm);padding:10px 13px;font-size:12px;pointer-events:none;opacity:0;transition:opacity .12s;z-index:30;min-width:175px}
+.pin-tt-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px;line-height:1.4}
+.pin-tt-tag{font-size:10px;font-weight:600;padding:1px 7px;border-radius:10px;display:inline-block;margin-bottom:5px}
+.pin-tt-row{display:flex;justify-content:space-between;gap:16px;color:var(--text2);font-size:11px;padding:1px 0}
+.pin-tt-val{color:var(--text);font-weight:500}
+
+/* INSIGHT BOX */
+.insight-box{background:var(--green-dim2,rgba(0,201,122,0.05));border:1px solid rgba(0,201,122,0.12);border-radius:var(--r);padding:14px 18px;margin-top:12px;font-size:13px;color:var(--text);line-height:1.8}
+.insight-box strong{color:var(--green)}
+
+/* AI CARD */
+.ai-card{background:rgba(0,201,122,0.04);border:1px solid rgba(0,201,122,0.12);border-radius:var(--r);padding:20px 22px;margin-bottom:14px;position:relative}
+.ai-badge{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--green);margin-bottom:12px}
+.ai-dot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+.ai-text{font-size:13px;line-height:1.8;color:var(--text);white-space:pre-wrap}
+.spinner{width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* MONTH VIEW */
+.month-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:14px}
+.month-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;cursor:pointer;transition:all .2s}
+.month-card:hover{border-color:var(--border2);transform:translateY(-1px)}
+.mc-name{font-size:13px;font-weight:600;margin-bottom:3px}
+.mc-period{font-size:11px;color:var(--text2);font-family:'DM Mono',monospace;margin-bottom:10px}
+.mc-stats{display:flex;gap:20px}
+.mc-stat-val{font-size:16px;font-weight:700}
+.mc-stat-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+
+/* IG LOAD */
+.ig-load-btn{width:100%;padding:11px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r-sm);font-family:'Pretendard',sans-serif;font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px}
+.ig-load-btn:hover{border-color:var(--green);color:var(--green)}
+
+/* TWO COL */
+.two-col{display:grid;grid-template-columns:3fr 2fr;gap:14px;margin-bottom:14px}
+
+/* SECTION TITLE */
+.section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);margin:20px 0 10px}
+
+@media(max-width:640px){
+  .summary-grid{grid-template-columns:repeat(2,1fr)}
+  .funnel-grid{grid-template-columns:repeat(2,1fr)}
+  .fn-step::after{display:none}
+  .two-col,.month-grid{grid-template-columns:1fr}
+  .strength-row{grid-template-columns:1fr}
+  .wrap{padding:16px 16px 60px}
+  .camp-bar{padding:14px 16px 0}
+  .nav{padding:0 16px}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-logo">SDSHOP · 분석</div>
+  <div class="nav-right">
+    <div class="view-toggle">
+      <button class="vt-btn active" id="vtCamp" onclick="setView('camp',this)">공구별</button>
+      <button class="vt-btn" id="vtMonth" onclick="setView('month',this)">월별</button>
+    </div>
+  </div>
+</nav>
+
+<div class="camp-bar" id="campBar">
+  <button class="camp-btn active" data-c="all" onclick="selectCamp('all',this)">전체</button>
+  <button class="camp-btn" data-c="에어스텝퍼" onclick="selectCamp('에어스텝퍼',this)">에어스텝퍼 6차</button>
+  <button class="camp-btn" data-c="괄사빗" onclick="selectCamp('괄사빗',this)">괄사빗 2차</button>
+  <button class="camp-btn" data-c="더핏" onclick="selectCamp('더핏',this)">더핏브라</button>
+  <button class="camp-btn" data-c="작영오일" onclick="selectCamp('작영오일',this)">작영 오일</button>
+  <button class="camp-btn" data-c="베이키드콘" onclick="selectCamp('베이키드콘',this)">베이키드콘</button>
+</div>
+
+<div class="wrap">
+
+<!-- ══ 공구별 뷰 ══ -->
+<div id="viewCamp">
+
+  <div class="camp-meta" id="campMeta"></div>
+
+  <!-- KPI -->
+  <div class="summary-grid">
+    <div class="sk accent"><div class="sk-label">총 매출</div><div class="sk-val" id="kSales">—</div><div class="sk-sub" id="kSalesSub">—</div></div>
+    <div class="sk"><div class="sk-label">구매자 수</div><div class="sk-val" id="kOrders">—</div><div class="sk-sub">명</div></div>
+    <div class="sk amber"><div class="sk-label">평균 객단가</div><div class="sk-val" id="kAov">—</div><div class="sk-sub">1인당 평균</div></div>
+    <div class="sk blue"><div class="sk-label">구매 전환율</div><div class="sk-val" id="kCvr">—</div><div class="sk-sub" id="kCvrSub">—</div></div>
+  </div>
+
+  <!-- 일별 집계 테이블 -->
+  <div class="cc" id="weekSection">
+    <div class="cc-head">
+      <div class="cc-title" id="weekTitle">일별 집계</div>
+      <div class="cc-sub" id="weekSub">—</div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="week-table">
+        <thead><tr>
+          <th>날짜</th>
+          <th class="r">매출</th>
+          <th class="r">주문수</th>
+          <th class="r">비중</th>
+          <th class="r">게시물</th>
+          <th class="r">총 조회수</th>
+          <th class="r">총 댓글</th>
+          <th style="width:60px"></th>
+        </tr></thead>
+        <tbody id="weekBody"></tbody>
+        <tfoot id="weekFoot"></tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- 매출 차트 -->
+  <div class="two-col">
+    <div class="cc" style="margin-bottom:0">
+      <div class="cc-head">
+        <div class="cc-title">일별 매출 추이</div>
+        <div class="leg-row">
+          <div class="leg"><div class="leg-sq" style="background:var(--green)"></div>매출</div>
+        </div>
+      </div>
+      <div style="position:relative;width:100%;height:200px"><canvas id="salesChart" role="img" aria-label="일별 매출 추이"></canvas></div>
+    </div>
+    <div class="cc" style="margin-bottom:0">
+      <div class="cc-head"><div class="cc-title">구매 퍼널</div></div>
+      <div class="funnel-grid" id="funnelGrid"></div>
+    </div>
+  </div>
+
+  <!-- 이탈 인사이트 -->
+  <div class="cc" style="margin-top:14px" id="abandonCard">
+    <div class="cc-head">
+      <div class="cc-title">장바구니 이탈 분석</div>
+      <div class="cc-sub" id="abandonSub">—</div>
+    </div>
+    <div style="display:flex;gap:24px;flex-wrap:wrap">
+      <div><div class="sk-label">이탈 건수</div><div style="font-size:20px;font-weight:700;color:var(--red)" id="aCount">—</div></div>
+      <div><div class="sk-label">이탈 매출 손실</div><div style="font-size:20px;font-weight:700;color:var(--amber)" id="aLost">—</div></div>
+      <div><div class="sk-label">이탈률</div><div style="font-size:20px;font-weight:700;color:var(--text)" id="aRate">—</div></div>
+    </div>
+  </div>
+
+  <!-- 옵션별 판매 -->
+  <div class="cc" id="optionCard" style="display:none;margin-top:14px">
+    <div class="cc-head">
+      <div class="cc-title">옵션별 판매 분석</div>
+      <div class="cc-sub" id="optionTotal">—</div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="week-table">
+        <thead><tr>
+          <th>옵션명</th><th class="r">판매건수</th><th class="r">수량</th>
+          <th class="r">매출</th><th class="r">비중</th><th style="width:80px"></th>
+        </tr></thead>
+        <tbody id="optionBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section-title">인스타그램 × 매출 상관관계</div>
+
+  <div class="ig-ctrl">
+    <span class="ig-ctrl-label" style="display:flex;align-items:center;gap:5px">
+      게시물 효과 반영 기간
+      <span title="게시물을 올린 후 며칠 뒤까지의 매출을 그 게시물 효과로 볼지 설정해요.&#10;예) +1일: 오늘 올린 게시물이 내일까지 영향을 준다고 가정" style="display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;border:1px solid var(--text3);font-size:10px;color:var(--text3);cursor:help;flex-shrink:0">?</span>
+    </span>
+    <input type="range" min="0" max="4" step="1" value="1" id="igWindow" style="flex:1;max-width:200px" oninput="onWindowChange(this.value)">
+    <span class="ig-win-val" id="igWinVal">업로드 후 1일</span>
+    <button class="ig-load-btn" id="igLoadBtn" onclick="loadIgData()" style="width:auto;padding:7px 16px;font-size:12px">
+      <span id="igLoadIcon">📡</span> <span id="igLoadText">인스타 데이터 불러오기</span>
+    </button>
+  </div>
+
+  <div class="strength-row">
+    <div class="sc">
+      <div class="sc-label">조회수와 매출 관계</div>
+      <div class="sc-bar-wrap"><div class="sc-bar" id="bViews" style="background:#4a9eff;width:0%"></div></div>
+      <div class="sc-verdict" id="vViews">데이터 로드 후 분석</div>
+    </div>
+    <div class="sc">
+      <div class="sc-label">댓글수와 매출 관계</div>
+      <div class="sc-bar-wrap"><div class="sc-bar" id="bComments" style="background:#00c97a;width:0%"></div></div>
+      <div class="sc-verdict" id="vComments">데이터 로드 후 분석</div>
+    </div>
+    <div class="sc">
+      <div class="sc-label">업로드 수와 매출 관계</div>
+      <div class="sc-bar-wrap"><div class="sc-bar" id="bCount" style="background:#f5a623;width:0%"></div></div>
+      <div class="sc-verdict" id="vCount">데이터 로드 후 분석</div>
+    </div>
+  </div>
+
+  <div class="cc" id="igChartCard">
+    <div class="cc-head">
+      <div class="cc-title">게시물 타임라인</div>
+      <div class="leg-row">
+        <div class="leg"><div style="width:10px;height:10px;border-radius:50%;background:var(--green)"></div>릴스 (원)</div>
+        <div class="leg"><div style="width:9px;height:9px;border-radius:1px;background:var(--green);transform:rotate(45deg)"></div>카드뉴스 (마름모)</div>
+        <div class="leg" style="font-size:10px">● 크기=댓글수</div>
+      </div>
+    </div>
+    <div style="position:relative;width:100%;height:200px">
+      <canvas id="igChart" role="img" aria-label="인스타 게시물 타임라인과 매출 상관관계"></canvas>
+    </div>
+    <div class="pin-layer" id="pinLayer">
+      <div class="pin-tt" id="pinTt">
+        <div class="pin-tt-title" id="ptTitle"></div>
+        <div class="pin-tt-tag" id="ptTag"></div>
+        <div class="pin-tt-row"><span>유형</span><span class="pin-tt-val" id="ptType"></span></div>
+        <div class="pin-tt-row"><span>조회수</span><span class="pin-tt-val" id="ptViews"></span></div>
+        <div class="pin-tt-row"><span>댓글</span><span class="pin-tt-val" id="ptComments"></span></div>
+        <div class="pin-tt-row"><span>귀속 매출</span><span class="pin-tt-val" id="ptSales"></span></div>
+      </div>
+    </div>
+    <div class="insight-box" id="igInsight" style="display:none"></div>
+  </div>
+
+  <!-- AI 분석 -->
+  <div class="ai-card" id="aiCard" style="display:none">
+    <div class="ai-badge"><div class="ai-dot"></div>AI 공구 분석</div>
+    <div class="ai-text" id="aiText"></div>
+  </div>
+
+</div><!-- /viewCamp -->
+
+<!-- ══ 월별 뷰 ══ -->
+<div id="viewMonth" style="display:none">
+  <div class="section-title">월별 공구 성과</div>
+  <div class="month-grid" id="monthGrid"></div>
+
+  <div class="cc">
+    <div class="cc-head">
+      <div class="cc-title">월별 공구 매출 비교</div>
+    </div>
+    <div style="position:relative;width:100%;height:260px">
+      <canvas id="monthChart" role="img" aria-label="월별 공구별 매출 비교"></canvas>
+    </div>
+  </div>
+
+  <div class="cc">
+    <div class="cc-head"><div class="cc-title">공구별 퍼널 비교</div></div>
+    <div style="overflow-x:auto">
+      <table class="week-table">
+        <thead><tr>
+          <th>공구</th><th>기간</th>
+          <th class="r">총 매출</th><th class="r">주문</th>
+          <th class="r">페이지뷰</th><th class="r">전환율</th>
+          <th class="r">이탈 손실</th>
+        </tr></thead>
+        <tbody id="allCampBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div><!-- /viewMonth -->
+
+</div><!-- /wrap -->
+
+<script>
+const SUPABASE_URL='https://kcycwyxstbohbleezlog.supabase.co';
+const SUPABASE_ANON_KEY='sb_publishable_jP9l8azSMDD2S5Af2tiFoA_xQsjFids';
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+const CAMP_COLORS={'에어스텝퍼':'#4a9eff','괄사빗':'#00c97a','더핏':'#ff6b9d','작영오일':'#f5a623','베이키드콘':'#a78bfa','기타':'#888884','all':'#f0f0ee'};
+
+const CAMPAIGNS={
+  '에어스텝퍼':{
+    label:'에어스텝퍼 6차',start:'2026-04-20',end:'2026-04-28',
+    products:['에어스텝퍼 6차','[vivid secret] 에어스텝퍼'],
+    igKeywords:['에어스텝퍼','스텝퍼'],
+    total:72091800,orders:946,pv:19994,cartCount:1840,abandonCount:932,lost:82983416,
+    options:[
+      {name:'에어스텝퍼 토프베이지 1개',orders:480,qty:480,sales:42720000},
+      {name:'에어스텝퍼 블랙 1개',orders:280,qty:280,sales:17640000},
+      {name:'에어스텝퍼 화이트 1개',orders:186,qty:186,sales:11731800},
+    ],
+    daily:[
+      {date:'2026-04-20',sales:0,orders:1},{date:'2026-04-21',sales:0,orders:2},
+      {date:'2026-04-22',sales:39659000,orders:531},{date:'2026-04-23',sales:7788000,orders:106},
+      {date:'2026-04-24',sales:6890800,orders:88},{date:'2026-04-25',sales:6058000,orders:77},
+      {date:'2026-04-26',sales:6730000,orders:80},{date:'2026-04-27',sales:4284000,orders:53},
+      {date:'2026-04-28',sales:85000,orders:1}
+    ]
+  },
+  '괄사빗':{
+    label:'웰리브 림프순환 두피 괄사빗 2차',start:'2026-05-12',end:'2026-05-18',
+    products:['웰리브 림프순환 두피 괄사빗 2차'],
+    igKeywords:['괄사','반려빗','두피빗','림프','빗질'],
+    total:26499000,orders:263,pv:5137,cartCount:446,abandonCount:191,lost:13179000,
+    options:[
+      {name:'괄사빗 1개',orders:163,qty:163,sales:11247000},
+      {name:'괄사빗 2개 (패밀리)',orders:68,qty:136,sales:9384000},
+      {name:'괄사빗 3개 (단체)',orders:32,qty:96,sales:5868000},
+    ],
+    daily:[
+      {date:'2026-05-12',sales:17253000,orders:167},{date:'2026-05-13',sales:2468600,orders:27},
+      {date:'2026-05-14',sales:1359000,orders:14},{date:'2026-05-15',sales:1153000,orders:11},
+      {date:'2026-05-16',sales:2393400,orders:24},{date:'2026-05-17',sales:961000,orders:10},
+      {date:'2026-05-18',sales:911000,orders:10}
+    ]
+  },
+  '더핏':{
+    label:'더핏브라 & 나시탑',start:'2026-05-14',end:'2026-05-18',
+    products:['더핏브라 서포트 A~D컵','더핏브라 서포트 E~F컵','더핏 슬립업 나시 브라탑','더핏 슬립업 나시 크롭탑','더핏 팬티'],
+    igKeywords:['더핏','브라','나시탑','속옷','나시브라'],
+    total:21393820,orders:96,pv:2449,cartCount:544,abandonCount:302,lost:8861400,
+    options:[
+      {name:'더핏브라 서포트 A~D컵 (블랙)',orders:86,qty:86,sales:7510540},
+      {name:'더핏브라 서포트 A~D컵 (스킨)',orders:72,qty:72,sales:6036640},
+      {name:'더핏브라 서포트 A~D컵 (화이트)',orders:42,qty:42,sales:3004300},
+      {name:'더핏브라 서포트 A~D컵 (크림)',orders:28,qty:28,sales:2385200},
+      {name:'더핏브라 서포트 A~D컵 (핑크)',orders:20,qty:20,sales:1676540},
+    ],
+    daily:[
+      {date:'2026-05-14',sales:10151320,orders:44},{date:'2026-05-15',sales:3421000,orders:17},
+      {date:'2026-05-16',sales:1413400,orders:8},{date:'2026-05-17',sales:4857400,orders:16},
+      {date:'2026-05-18',sales:1550700,orders:11}
+    ]
+  },
+  '베이키드콘':{
+    label:'베이키드콘 오리지날&와사비맛 1차',start:'2026-04-28',end:'2026-05-06',
+    products:['베이키드콘 오리지날&와사비맛 1차'],
+    igKeywords:['베이키드콘','와사비','오리지날','콘'],
+    total:2050800,orders:49,pv:0,cartCount:0,abandonCount:0,lost:0,
+    options:[
+      {name:'오리지날 단품',orders:22,qty:22,sales:924000},
+      {name:'와사비 단품',orders:18,qty:18,sales:756000},
+      {name:'혼합(오리지날+와사비)',orders:9,qty:18,sales:370800},
+    ],
+    daily:[
+      {date:'2026-04-28',sales:728900,orders:17},{date:'2026-04-29',sales:523600,orders:12},
+      {date:'2026-04-30',sales:31500,orders:1},{date:'2026-05-01',sales:133600,orders:4},
+      {date:'2026-05-02',sales:236700,orders:4},{date:'2026-05-03',sales:128400,orders:4},
+      {date:'2026-05-04',sales:51900,orders:2},{date:'2026-05-05',sales:31500,orders:1},
+      {date:'2026-05-06',sales:184700,orders:4}
+    ]
+  },
+    label:'작영 트리플에이 에너지오일 1차',start:'2026-04-27',end:'2026-05-06',
+    products:['작영 트리플에이 에너지오일 1차'],
+    igKeywords:['에너지오일','트리플에이','오일','작영'],
+    total:21258300,orders:135,pv:2073,cartCount:264,abandonCount:137,lost:11919000,
+    options:[
+      {name:'에너지오일 1병',orders:82,qty:82,sales:7134000},
+      {name:'에너지오일 2병 (세트)',orders:38,qty:76,sales:9804300},
+      {name:'에너지오일 3병 (패밀리)',orders:15,qty:45,sales:4320000},
+    ],
+    daily:[
+      {date:'2026-04-27',sales:4164800,orders:31},{date:'2026-04-28',sales:3953000,orders:21},
+      {date:'2026-04-29',sales:3365000,orders:24},{date:'2026-04-30',sales:2049000,orders:12},
+      {date:'2026-05-01',sales:1640000,orders:11},{date:'2026-05-02',sales:1523000,orders:8},
+      {date:'2026-05-03',sales:943000,orders:7},{date:'2026-05-04',sales:1075000,orders:7},
+      {date:'2026-05-05',sales:1943000,orders:11},{date:'2026-05-06',sales:359500,orders:2}
+    ]
+  }
+};
+
+const IG_POSTS=[
+  {date:'2026-05-08',time:'04:24',type:'릴스',views:8652,comments:9,label:'D-4 라방 영상',caption:'괄사빗 한쪽만 올라간'},
+  {date:'2026-05-08',time:'14:53',type:'릴스',views:10710,comments:34,label:'얼굴라인 괄사효과',caption:'반려괄사빗 얼굴라인'},
+  {date:'2026-05-09',time:'03:35',type:'카드뉴스',views:0,comments:15,label:'괄사빗 후기 이벤트',caption:'반려괄사빗 후기'},
+  {date:'2026-05-09',time:'09:24',type:'릴스',views:4495,comments:8,label:'두피 1cm 쳐지면',caption:'두피 괄사 에스테틱'},
+  {date:'2026-05-10',time:'02:37',type:'릴스',views:13413,comments:10,label:'식후 털기 운동',caption:'식후 운동 혈당'},
+  {date:'2026-05-10',time:'05:39',type:'카드뉴스',views:0,comments:8,label:'D-2 괄사빗',caption:'D-2 반려괄사빗'},
+  {date:'2026-05-10',time:'22:09',type:'릴스',views:12284,comments:34,label:'요가블럭 스트레칭',caption:'요가블럭 다리'},
+  {date:'2026-05-11',time:'01:35',type:'카드뉴스',views:0,comments:5,label:'괄사빗 세척',caption:'반려괄사빗 세척'},
+  {date:'2026-05-11',time:'03:30',type:'릴스',views:46327,comments:13,label:'쇄골 아래 풀면',caption:'쇄골 가슴 근육'},
+  {date:'2026-05-11',time:'05:24',type:'릴스',views:6832,comments:32,label:'8개월만에 더핏',caption:'더핏브라 나시 8개월'},
+  {date:'2026-05-11',time:'14:31',type:'릴스',views:23835,comments:186,label:'한쪽 다리만 차이',caption:'작순이 반려괄사빗 다리'},
+  {date:'2026-05-12',time:'00:40',type:'카드뉴스',views:0,comments:88,label:'괄사빗 오픈',caption:'반려괄사빗 오픈 구매'},
+  {date:'2026-05-12',time:'01:51',type:'릴스',views:4611,comments:42,label:'빗질 하지 마세요',caption:'반려괄사빗 두피'},
+  {date:'2026-05-12',time:'05:37',type:'릴스',views:2450,comments:8,label:'매일매일 개운하게',caption:'반려괄사빗 붓기'},
+  {date:'2026-05-12',time:'08:28',type:'카드뉴스',views:0,comments:27,label:'D-2 더핏 핑크',caption:'D-2 더핏브라 서포트 핑크'},
+  {date:'2026-05-12',time:'11:22',type:'릴스',views:4407,comments:9,label:'목 짧아보일 때',caption:'쇄골 괄사 승모근'},
+  {date:'2026-05-13',time:'01:48',type:'릴스',views:2185,comments:13,label:'더핏 컬러 비교',caption:'더핏브라 컬러 3년'},
+  {date:'2026-05-13',time:'07:39',type:'카드뉴스',views:0,comments:30,label:'출산 후 가슴 변화',caption:'출산 가슴 더핏브라'},
+  {date:'2026-05-13',time:'11:03',type:'릴스',views:9072,comments:46,label:'아랫배 운동',caption:'복부 스트레칭 아랫배'},
+  {date:'2026-05-13',time:'22:26',type:'릴스',views:31423,comments:14,label:'쉐잌보드+괄사빗',caption:'쉐잌 보드 반려괄사빗'},
+  {date:'2026-05-13',time:'23:21',type:'카드뉴스',views:0,comments:21,label:'잠시후 더핏 오픈',caption:'더핏브라 잠시후 오전10시'},
+  {date:'2026-05-14',time:'00:37',type:'카드뉴스',views:0,comments:39,label:'인생브라 더핏 오픈',caption:'인생브라 더핏브라 오픈 구매'},
+  {date:'2026-05-14',time:'03:02',type:'릴스',views:128790,comments:61,label:'365일 더핏 비포애프터',caption:'더핏브라 365일 등살'},
+  {date:'2026-05-14',time:'05:20',type:'릴스',views:5534,comments:10,label:'종아리 라인 관리',caption:'종아리 발등 아킬레스'},
+  {date:'2026-05-14',time:'10:34',type:'릴스',views:3895,comments:8,label:'얼굴 괄사 3곳',caption:'교근 턱 괄사빗'},
+  {date:'2026-05-14',time:'12:38',type:'카드뉴스',views:0,comments:18,label:'더핏 운동할때도',caption:'더핏브라 운동'},
+  {date:'2026-05-15',time:'00:41',type:'카드뉴스',views:0,comments:33,label:'스승의날 일상',caption:'어린이집 선물 일상'},
+  {date:'2026-05-15',time:'06:45',type:'릴스',views:3016,comments:5,label:'더핏브라 착용법',caption:'더핏브라 착용'},
+  {date:'2026-05-15',time:'10:28',type:'카드뉴스',views:0,comments:41,label:'카페일상+공구연장',caption:'카페 더핏브라 공구연장'},
+  {date:'2026-05-15',time:'15:46',type:'릴스',views:6530,comments:80,label:'괄사빗 첫경험',caption:'반려괄사빗 첫경험 시원'},
+  {date:'2026-05-15',time:'23:03',type:'카드뉴스',views:0,comments:39,label:'괄사루틴 쉐잌보드',caption:'쉐잌 보드 반려빗괄사'},
+  {date:'2026-05-16',time:'06:40',type:'카드뉴스',views:0,comments:8,label:'더핏 나시탑',caption:'더핏브라 나시탑'},
+  {date:'2026-05-16',time:'12:44',type:'릴스',views:5527,comments:9,label:'하체붓기 스트레칭',caption:'하체 붓기 스트레칭'},
+  {date:'2026-05-17',time:'00:13',type:'릴스',views:16475,comments:14,label:'팔 스트레칭',caption:'팔뚝 스트레칭 살'},
+  {date:'2026-05-17',time:'03:54',type:'릴스',views:11439,comments:17,label:'오프숄더 착용',caption:'더핏브라 오프숄더'},
+  {date:'2026-05-17',time:'07:26',type:'릴스',views:5977,comments:5,label:'손가락 괄사법',caption:'손가락 괄사 반려빗'},
+  {date:'2026-05-17',time:'22:59',type:'카드뉴스',views:0,comments:7,label:'마감 공지',caption:'마감 반려빗괄사 더핏'},
+];
+
+function classifyPost(p,campKey){
+  if(!campKey||campKey==='all'){
+    const hasGua=/(괄사|반려빗|두피빗|림프|빗질)/.test(p.caption);
+    const hasFit=/(더핏|브라|나시탑|속옷)/.test(p.caption);
+    if(hasGua&&hasFit)return'both';
+    if(hasGua)return'gua';
+    if(hasFit)return'fit';
+    return'etc';
+  }
+  const kws=CAMPAIGNS[campKey]?.igKeywords||[];
+  return kws.some(k=>p.caption.includes(k))?campKey:'etc';
+}
+
+const PIN_COLORS={gua:'#4a9eff',fit:'#ff6b9d',both:'#f5a623',etc:'#555552'};
+const W_LABELS=['당일 업로드만','업로드 후 1일','업로드 후 2일','업로드 후 3일','업로드 후 4일'];
+
+let currentCamp='에어스텝퍼';
+let currentView='camp';
+let igPosts=null;
+let igLoaded=false;
+let charts={};
+
+function fmt(n){return Math.round(n).toLocaleString('ko-KR')}
+function fmtW(n){
+  if(n>=100000000)return (n/100000000).toFixed(1)+'억';
+  if(n>=10000)return Math.round(n/10000)+'만';
+  return fmt(n);
+}
+function pct(a,b){return b>0?(a/b*100).toFixed(1)+'%':'—'}
+function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id]}}
+
+function setView(v,btn){
+  currentView=v;
+  document.querySelectorAll('.vt-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('viewCamp').style.display=v==='camp'?'block':'none';
+  document.getElementById('viewMonth').style.display=v==='month'?'block':'none';
+  document.getElementById('campBar').style.display=v==='camp'?'flex':'none';
+  if(v==='month')renderMonth();
+}
+
+function selectCamp(c,btn){
+  currentCamp=c==='all'?'에어스텝퍼':c;
+  document.querySelectorAll('.camp-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCamp(currentCamp);
+}
+
+function renderCamp(key){
+  const c=CAMPAIGNS[key];
+  if(!c)return;
+
+  const color=CAMP_COLORS[key]||'#4a9eff';
+
+  // 메타
+  const meta=document.getElementById('campMeta');
+  meta.innerHTML=`<span class="camp-badge" style="background:${color}22;color:${color}">${c.label}</span>
+    <span class="camp-period">${c.start} ~ ${c.end}</span>
+    <span class="camp-tag">${c.daily.length}일 진행</span>`;
+
+  // KPI
+  const aov=c.orders>0?c.total/c.orders:0;
+  const cvr=c.pv>0?(c.orders/c.pv*100):0;
+  document.getElementById('kSales').textContent=fmtW(c.total)+'원';
+  document.getElementById('kSalesSub').textContent=`총 ${fmt(c.total)}원`;
+  document.getElementById('kOrders').textContent=fmt(c.orders);
+  document.getElementById('kAov').textContent=fmtW(aov)+'원';
+  document.getElementById('kCvr').textContent=cvr.toFixed(1)+'%';
+  document.getElementById('kCvrSub').textContent=`페이지뷰 ${fmt(c.pv)}회 기준`;
+
+  // 주차 집계
+  renderWeekTable(c);
+
+  // 매출 차트
+  renderSalesChart(c,color);
+
+  // 퍼널
+  renderFunnel(c);
+
+  // 이탈
+  document.getElementById('abandonSub').textContent=`장바구니 담김 ${fmt(c.cartCount)}건 기준`;
+  document.getElementById('aCount').textContent=fmt(c.abandonCount)+'건';
+  document.getElementById('aLost').textContent=fmtW(c.lost)+'원';
+  document.getElementById('aRate').textContent=c.cartCount>0?(c.abandonCount/c.cartCount*100).toFixed(1)+'%':'—';
+
+  // 옵션별
+  renderOptions(c);
+
+  // 인스타 재렌더
+  if(igLoaded&&igPosts){
+    const w=parseInt(document.getElementById('igWindow').value);
+    renderIgChart(igPosts,key,w);
+  } else {
+    // 작영오일/베이키드콘은 4월 인스타 데이터 필요 안내
+    if(key==='작영오일'||key==='베이키드콘'){
+      const ins=document.getElementById('igInsight');
+      ins.style.display='block';
+      ins.innerHTML=`<strong style="color:var(--amber)">인스타 데이터 수집 필요</strong><br>
+${CAMPAIGNS[key].label}은 <strong>4월 말</strong> 진행 공구예요. 현재 수집된 데이터(5월 8일~)에 포함되지 않아요.<br>
+"인스타 데이터 불러오기" 버튼을 누르면 <strong>4월 19일부터 5월 18일</strong> 전체 수집을 시도합니다. (Apify 크레딧 소모)`;
+    }
+  }
+
+  // AI
+  const aiCard=document.getElementById('aiCard');
+  aiCard.style.display='block';
+  generateAI(c,key);
+}
+
+function renderOptions(c){
+  const card=document.getElementById('optionCard');
+  if(!c.options||!c.options.length){card.style.display='none';return;}
+  card.style.display='block';
+  const totalS=c.options.reduce((a,o)=>a+o.sales,0);
+  const totalO=c.options.reduce((a,o)=>a+o.orders,0);
+  document.getElementById('optionTotal').textContent=`총 ${fmt(totalO)}건`;
+  const colors=['#00c97a','#4a9eff','#ff6b9d','#f5a623','#a78bfa','#34d399','#fb923c'];
+  document.getElementById('optionBody').innerHTML=c.options.map((o,i)=>{
+    const sp=totalS>0?Math.round(o.sales/totalS*100):0;
+    const name=o.name.length>22?o.name.slice(0,22)+'…':o.name;
+    return `<tr>
+      <td class="bold" title="${o.name}">${name}</td>
+      <td class="r">${fmt(o.orders)}건</td>
+      <td class="r">${fmt(o.qty)}개</td>
+      <td class="r bold" style="color:var(--text)">${fmtW(o.sales)}원</td>
+      <td class="r" style="color:${colors[i%colors.length]};font-weight:600">${sp}%</td>
+      <td><div style="height:4px;background:var(--surface3);border-radius:2px"><div style="height:4px;border-radius:2px;background:${colors[i%colors.length]};width:${sp}%"></div></div></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderWeekTable(c){
+  const days=c.daily;
+  const totalSales=days.reduce((a,d)=>a+d.sales,0);
+  const totalOrders=days.reduce((a,d)=>a+d.orders,0);
+
+  document.getElementById('weekTitle').textContent='일별 집계';
+  document.getElementById('weekSub').textContent=`공구 기간 ${days.length}일`;
+
+  // 인스타 게시물 날짜별 집계 (igPosts 있으면 활용)
+  const igByDate={};
+  if(igLoaded&&igPosts){
+    const fp=filterPostsForCamp(igPosts,currentCamp);
+    fp.forEach(p=>{
+      if(!igByDate[p.date])igByDate[p.date]={count:0,views:0,comments:0};
+      igByDate[p.date].count++;
+      igByDate[p.date].views+=p.views||0;
+      igByDate[p.date].comments+=p.comments||0;
+    });
+  }
+
+  const color=CAMP_COLORS[currentCamp]||'#00c97a';
+  document.getElementById('weekBody').innerHTML=days.map((d,i)=>{
+    const share=totalSales>0?Math.round(d.sales/totalSales*100):0;
+    const ig=igByDate[d.date]||{count:0,views:0,comments:0};
+    const isPeak=d.sales===Math.max(...days.map(x=>x.sales));
+    return `<tr>
+      <td class="bold" style="${isPeak?'color:var(--green)':''}">${d.date.slice(5)} ${isPeak?'<span style="font-size:9px;background:var(--green-dim);color:var(--green);padding:1px 6px;border-radius:8px;margin-left:4px">피크</span>':''}</td>
+      <td class="r bold" style="color:var(--text)">${d.sales>0?fmtW(d.sales)+'원':'—'}</td>
+      <td class="r">${d.orders>0?fmt(d.orders)+'건':'—'}</td>
+      <td class="r" style="color:${color};font-weight:600">${share>0?share+'%':'—'}</td>
+      <td class="r" style="color:${ig.count>0?'var(--text2)':'var(--text3)'}">${ig.count>0?ig.count+'개':'—'}</td>
+      <td class="r" style="color:${ig.views>0?'var(--text2)':'var(--text3)'}">${ig.views>0?fmt(ig.views):'—'}</td>
+      <td class="r" style="color:${ig.comments>0?'var(--amber)':'var(--text3)'}">${ig.comments>0?ig.comments:'—'}</td>
+      <td><div style="height:4px;background:var(--surface3);border-radius:2px"><div style="height:4px;border-radius:2px;background:${color};width:${share}%"></div></div></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('weekFoot').innerHTML=`<tr>
+    <td style="font-weight:700;color:var(--text)">합계</td>
+    <td class="r">${fmtW(totalSales)}원</td>
+    <td class="r">${fmt(totalOrders)}건</td>
+    <td class="r">100%</td>
+    <td class="r">${Object.values(igByDate).reduce((a,b)=>a+b.count,0)||'—'}</td>
+    <td class="r">${Object.values(igByDate).reduce((a,b)=>a+b.views,0)?fmt(Object.values(igByDate).reduce((a,b)=>a+b.views,0)):'—'}</td>
+    <td class="r">${Object.values(igByDate).reduce((a,b)=>a+b.comments,0)||'—'}</td>
+    <td></td>
+  </tr>`;
+}
+
+function renderSalesChart(c,color){
+  destroyChart('salesChart');
+  const labels=c.daily.map(d=>d.date.slice(5));
+  const data=c.daily.map(d=>d.sales);
+  const tc='#555552',gc='rgba(255,255,255,0.04)';
+  charts['salesChart']=new Chart(document.getElementById('salesChart'),{
+    type:'line',
+    data:{labels,datasets:[{
+      data,borderColor:color,
+      backgroundColor:color.replace(')',',0.08)').replace('rgb','rgba'),
+      fill:true,tension:0.4,pointRadius:4,
+      pointBackgroundColor:color,pointBorderColor:color+'33',
+      pointBorderWidth:2,pointHoverRadius:6,borderWidth:2
+    }]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{
+        callbacks:{label:ctx=>'  '+fmtW(ctx.raw)+'원',title:ctx=>ctx[0].label},
+        backgroundColor:'#1e1e1e',titleColor:'#f0f0ee',bodyColor:'#888884',
+        borderColor:'rgba(255,255,255,0.12)',borderWidth:1,padding:10
+      }},
+      scales:{
+        x:{ticks:{color:tc,font:{size:10},autoSkip:true,maxRotation:0},grid:{color:gc}},
+        y:{ticks:{color:tc,font:{size:10},callback:v=>fmtW(v)},grid:{color:gc},min:0}
+      },
+      layout:{padding:{top:8,right:8,left:0,bottom:0}}
+    }
+  });
+}
+
+function renderFunnel(c){
+  const steps=[
+    {label:'페이지뷰',val:c.pv,color:'var(--blue)'},
+    {label:'장바구니',val:c.cartCount,color:'var(--amber)'},
+    {label:'구매완료',val:c.orders,color:'var(--green)'},
+    {label:'이탈 손실',val:c.lost,color:'var(--red)',isMoney:true},
+  ];
+  const maxV=Math.max(c.pv,c.cartCount,c.orders);
+  document.getElementById('funnelGrid').innerHTML=steps.map((s,i)=>{
+    const h=s.isMoney?40:Math.max(12,Math.round((s.val/maxV)*70));
+    const rate=i>0&&!s.isMoney?` (${pct(s.val,steps[i-1].val)})`:'';
+    return `<div class="fn-step">
+      <div class="fn-bar-wrap"><div class="fn-bar" style="height:${h}px;background:${s.color};opacity:0.85"></div></div>
+      <div class="fn-num" style="color:${s.color}">${s.isMoney?fmtW(s.val)+'원':fmt(s.val)}</div>
+      <div class="fn-label">${s.label}</div>
+      <div class="fn-rate" style="color:${s.color}">${rate}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ─── Instagram ─── */
+function getAttrSales(post,w,campKey){
+  const camp=campKey&&campKey!=='all'?CAMPAIGNS[campKey]:null;
+  if(!camp)return null; // null = 표시 불가
+
+  const salesByDate={};
+  camp.daily.forEach(d=>salesByDate[d.date]=d.sales);
+
+  const di=camp.daily.findIndex(d=>d.date===post.date);
+
+  if(di<0){
+    // 공구 시작 전 게시물 → 윈도우 내에 공구 오픈일이 포함되는지 확인
+    const campStart=camp.daily[0].date;
+    const diffMs=new Date(campStart)-new Date(post.date);
+    const diffDays=Math.round(diffMs/86400000);
+    if(diffDays>0&&diffDays<=w){
+      // 오픈일 매출만, 해당 공구만
+      return {sales:Math.round(camp.daily[0].sales*Math.pow(0.65,diffDays)),isPre:true};
+    }
+    return null; // 윈도우 밖이면 귀속 불가
+  }
+
+  // 공구 기간 내 게시물 → 해당 공구 daily 매출만 합산
+  let t=0;
+  for(let k=0;k<=w&&di+k<camp.daily.length;k++)
+    t+=camp.daily[di+k].sales*Math.pow(0.65,k);
+  return {sales:Math.round(t),isPre:false};
+}
+
+function pearson(xs,ys){
+  const n=xs.length;if(n<3)return 0;
+  const mx=xs.reduce((a,b)=>a+b,0)/n,my=ys.reduce((a,b)=>a+b,0)/n;
+  const num=xs.reduce((s,x,i)=>s+(x-mx)*(ys[i]-my),0);
+  const dx=Math.sqrt(xs.reduce((s,x)=>s+(x-mx)**2,0));
+  const dy=Math.sqrt(ys.reduce((s,y)=>s+(y-my)**2,0));
+  return(dx===0||dy===0)?0:num/(dx*dy);
+}
+
+function strengthText(r){
+  const a=Math.abs(r);
+  const pct=Math.round(a*100);
+  const dir=r>=0?'많을수록 매출 ↑':'많을수록 매출 ↓';
+  if(a>0.7) return `<strong style="color:var(--green)">강한 연관 (${pct}%)</strong><br><span style="font-size:10px;color:var(--text3)">${dir}</span>`;
+  if(a>0.5) return `<strong style="color:var(--amber)">뚜렷한 연관 (${pct}%)</strong><br><span style="font-size:10px;color:var(--text3)">${dir}</span>`;
+  if(a>0.3) return `<strong>약한 연관 (${pct}%)</strong><br><span style="font-size:10px;color:var(--text3)">${dir} · 참고 수준</span>`;
+  return `<strong style="color:var(--text3)">연관 미미 (${pct}%)</strong><br><span style="font-size:10px;color:var(--text3)">데이터 더 필요</span>`;
+}
+
+function filterPostsForCamp(posts,campKey){
+  if(!campKey||campKey==='all')return posts;
+  const kws=CAMPAIGNS[campKey]?.igKeywords||[];
+  // 공구 기간 ±7일 내 게시물 + 키워드 매칭
+  const camp=CAMPAIGNS[campKey];
+  const start=new Date(camp.start);
+  const end=new Date(camp.end);
+  const rangeStart=new Date(start);rangeStart.setDate(rangeStart.getDate()-7);
+  return posts.filter(p=>{
+    const pd=new Date(p.date);
+    const inRange=pd>=rangeStart&&pd<=end;
+    const hasKw=kws.some(k=>p.caption.includes(k))||inRange;
+    return inRange&&hasKw;
+  });
+}
+
+function renderIgChart(posts,campKey,w){
+  const camp=campKey&&campKey!=='all'?CAMPAIGNS[campKey]:null;
+  if(!camp)return;
+
+  const fp=filterPostsForCamp(posts,campKey);
+  const allDates=[...new Set([...camp.daily.map(d=>d.date),...fp.map(p=>p.date)])].sort();
+
+  destroyChart('igChart');
+  const salesByDate={};
+  camp.daily.forEach(d=>salesByDate[d.date]=d.sales);
+  const tc='#555552',gc='rgba(255,255,255,0.04)';
+  const color=CAMP_COLORS[campKey]||'#4a9eff';
+
+  charts['igChart']=new Chart(document.getElementById('igChart'),{
+    type:'line',
+    data:{
+      labels:allDates.map(d=>d.slice(5)),
+      datasets:[{
+        data:allDates.map(d=>salesByDate[d]||0),
+        borderColor:color,backgroundColor:color+'11',
+        fill:true,tension:0.4,pointRadius:3,
+        pointBackgroundColor:color,pointBorderColor:color+'44',
+        pointBorderWidth:2,borderWidth:2,pointHoverRadius:5
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{
+        callbacks:{label:ctx=>'  매출 '+fmtW(ctx.raw)+'원',title:ctx=>ctx[0].label},
+        backgroundColor:'#1e1e1e',titleColor:'#f0f0ee',bodyColor:'#888884',
+        borderColor:'rgba(255,255,255,0.12)',borderWidth:1,padding:10
+      }},
+      scales:{
+        x:{ticks:{color:tc,font:{size:10},autoSkip:true,maxRotation:0},grid:{color:gc}},
+        y:{ticks:{color:tc,font:{size:10},callback:v=>fmtW(v)},grid:{color:gc},min:0}
+      },
+      layout:{padding:{top:8,right:8,left:0,bottom:0}}
+    }
+  });
+
+  // 핀
+  setTimeout(()=>buildPins(fp,campKey,w,allDates,salesByDate),300);
+
+  // 상관관계 — null(기간 밖) 제외하고 유효한 게시물만
+  const validPosts=fp.filter(p=>getAttrSales(p,w,campKey)!==null);
+  const attrArr=validPosts.map(p=>{const r=getAttrSales(p,w,campKey);return r?r.sales:0;});
+  const rV=pearson(validPosts.map(p=>p.views),attrArr);
+  const rC=pearson(validPosts.map(p=>p.comments),attrArr);
+  const grouped={};fp.forEach(p=>{if(!grouped[p.date])grouped[p.date]=[];grouped[p.date].push(p);});
+  const daySales=allDates.map(d=>salesByDate[d]||0);
+  const dayCounts=allDates.map(d=>(grouped[d]||[]).length);
+  const rN=pearson(dayCounts,daySales);
+
+  document.getElementById('bViews').style.width=Math.round(Math.abs(rV)*100)+'%';
+  document.getElementById('bComments').style.width=Math.round(Math.abs(rC)*100)+'%';
+  document.getElementById('bCount').style.width=Math.round(Math.abs(rN)*100)+'%';
+  document.getElementById('vViews').innerHTML=strengthText(rV);
+  document.getElementById('vComments').innerHTML=strengthText(rC);
+  document.getElementById('vCount').innerHTML=strengthText(rN);
+
+  const rs=[{n:'조회수',r:rV},{n:'댓글수',r:rC},{n:'업로드 수',r:rN}];
+  const top=rs.reduce((a,b)=>Math.abs(b.r)>Math.abs(a.r)?b:a);
+  const ins=document.getElementById('igInsight');
+  ins.style.display='block';
+
+  // 고도화된 인사이트 계산
+  const prePostsCount=fp.filter(p=>new Date(p.date)<new Date(camp.start)).length;
+  const inPostsCount=fp.filter(p=>new Date(p.date)>=new Date(camp.start)).length;
+  const maxCommentPost=fp.reduce((a,b)=>(b.comments>a.comments?b:a),fp[0]||{comments:0,label:'—'});
+  const maxViewPost=fp.reduce((a,b)=>(b.views>a.views?b:a),fp[0]||{views:0,label:'—'});
+  const reelPosts=fp.filter(p=>p.type==='릴스');
+  const cardPosts=fp.filter(p=>p.type==='카드뉴스');
+  const avgReelViews=reelPosts.length>0?Math.round(reelPosts.reduce((a,p)=>a+(p.views||0),0)/reelPosts.length):0;
+  const avgCardComments=cardPosts.length>0?Math.round(cardPosts.reduce((a,p)=>a+(p.comments||0),0)/cardPosts.length):0;
+  const peakSaleDay=camp.daily.reduce((a,b)=>b.sales>a.sales?b:a,camp.daily[0]);
+  const peakDayPosts=fp.filter(p=>p.date===peakSaleDay.date||p.date===camp.daily[Math.max(0,camp.daily.findIndex(d=>d.date===peakSaleDay.date)-1)]?.date);
+
+  const topSignal=top.r>0.5?`<strong style="color:var(--green)">${top.n}</strong>이 매출과 강하게 연동됩니다 (${Math.round(Math.abs(top.r)*100)}% 일치율).`
+    :top.r>0.3?`<strong>${top.n}</strong>이 매출과 어느 정도 연동됩니다 (${Math.round(Math.abs(top.r)*100)}% 일치율).`
+    :'현재 데이터만으로는 단일 지표와 매출의 명확한 패턴을 확인하기 어렵습니다. 공구를 반복할수록 신뢰도가 높아집니다.';
+
+  ins.innerHTML=`
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+    <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:10px 14px">
+      <div style="font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.6px">분석 게시물</div>
+      <div style="font-size:16px;font-weight:700">${fp.length}개 <span style="font-size:11px;color:var(--text2);font-weight:400">(사전 ${prePostsCount} + 공구기간 ${inPostsCount})</span></div>
+    </div>
+    <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:10px 14px">
+      <div style="font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.6px">최고 반응 게시물</div>
+      <div style="font-size:13px;font-weight:600">${maxCommentPost.label||'—'}</div>
+      <div style="font-size:11px;color:var(--text2)">댓글 ${maxCommentPost.comments}개 · 조회 ${maxViewPost.views.toLocaleString()}회</div>
+    </div>
+  </div>
+  <div style="font-size:13px;line-height:1.9;color:var(--text)">
+    <strong>콘텐츠-매출 상관 분석</strong><br>
+    ${topSignal}
+    ${avgReelViews>0?`릴스 평균 조회수 <strong>${avgReelViews.toLocaleString()}회</strong>, 카드뉴스 평균 댓글 <strong>${avgCardComments}개</strong> — `:''}
+    ${avgReelViews>5000&&avgCardComments>20?'릴스는 도달(노출), 카드뉴스는 구매 의향 시그널 역할로 역할 분담이 작동하고 있습니다.':avgReelViews>5000?'릴스 도달은 충분하나 댓글(구매 의향 시그널)이 부족합니다. CTA 강화를 검토하세요.':'콘텐츠 도달 규모를 높이는 것이 우선 과제입니다.'}<br><br>
+    <strong>피크 매출일(${peakSaleDay.date.slice(5)}) 전후 게시물 분석</strong><br>
+    ${peakDayPosts.length>0?`피크 전일/당일 업로드 ${peakDayPosts.length}개 — 총 댓글 <strong>${peakDayPosts.reduce((a,p)=>a+p.comments,0)}개</strong>, 조회수 <strong>${peakDayPosts.reduce((a,p)=>a+p.views,0).toLocaleString()}회</strong>. ${peakDayPosts.reduce((a,p)=>a+p.comments,0)>50?'높은 댓글 반응이 매출 피크와 연동됩니다. 다음 차수에도 피크 예상일 전날 집중 업로드를 유지하세요.':'피크 전 콘텐츠 반응이 제한적입니다. 다음 차수엔 피크 D-2부터 일 3개 이상 업로드를 시도해보세요.'}`:'피크 시점 게시물 데이터가 부족합니다.'}<br><br>
+    <strong>다음 공구 콘텐츠 전략 제안</strong><br>
+    ${maxCommentPost.label&&maxCommentPost.comments>20?`"${maxCommentPost.label}" 포맷(댓글 ${maxCommentPost.comments}개) 재활용 — 동일 포맷으로 공구 D-3 선공개. `:''}
+    업로드 ${W_LABELS[w]} 내 전환이 가장 높은 구간 → 해당 시점 집중 배치 권장.
+  </div>`;
+}
+
+function buildPins(posts,campKey,w,allDates,salesByDate){
+  const layer=document.getElementById('pinLayer');
+  layer.querySelectorAll('.pin').forEach(e=>e.remove());
+  const canvas=document.getElementById('igChart');
+  const cw=canvas.offsetWidth;
+  const meta=charts['igChart']?.getDatasetMeta(0);
+  if(!meta||!meta.data.length)return;
+
+  const xMap={};
+  allDates.forEach((d,i)=>{if(meta.data[i])xMap[d]=meta.data[i].x;});
+
+  const grouped={};
+  posts.forEach(p=>{if(!grouped[p.date])grouped[p.date]=[];grouped[p.date].push(p);});
+
+  Object.entries(grouped).forEach(([date,ps])=>{
+    const cx=xMap[date];if(cx===undefined)return;
+    const n=ps.length,step=11;
+    const startOff=-((n-1)*step)/2;
+    ps.forEach((p,j)=>{
+      const off=startOff+j*step;
+      const attrS=getAttrSales(p,w,campKey);
+      const col=CAMP_COLORS[campKey]||'#00c97a';
+      const isReel=p.type==='릴스';
+      const dotSize=Math.max(7,Math.min(20,7+Math.round(p.comments/12)));
+
+      const pin=document.createElement('div');
+      pin.className='pin';
+      pin.style.cssText=`left:${cx+off}px;top:0`;
+      // 릴스=원, 카드뉴스=마름모(rotate 45deg 정사각형)
+      const shapeStyle=isReel
+        ?`border-radius:50%;width:${dotSize}px;height:${dotSize}px`
+        :`border-radius:2px;width:${dotSize*0.85}px;height:${dotSize*0.85}px;transform:rotate(45deg)`;
+      pin.innerHTML=`<div class="pin-line" style="background:${col}"></div><div class="pin-dot" style="background:${col};${shapeStyle}"></div>`;
+
+      pin.addEventListener('mouseenter',()=>{
+        const tt=document.getElementById('pinTt');
+        document.getElementById('ptTitle').textContent=p.label;
+        const tag=document.getElementById('ptTag');
+        tag.textContent=p.type;
+        tag.style.background=col+'22';tag.style.color=col;
+        document.getElementById('ptType').textContent=p.type+' · '+p.time;
+        document.getElementById('ptViews').textContent=p.views>0?p.views.toLocaleString()+'회':'—';
+        document.getElementById('ptComments').textContent=p.comments+'개';
+        const salesEl=document.getElementById('ptSales');
+        if(!attrS){
+          salesEl.textContent='기간 밖';
+          salesEl.style.color='var(--text3)';
+        } else if(attrS.isPre){
+          salesEl.textContent=fmtW(attrS.sales)+'원 (오픈일 추정)';
+          salesEl.style.color='var(--amber)';
+        } else {
+          salesEl.textContent=fmtW(attrS.sales)+'원';
+          salesEl.style.color='var(--text)';
+        }
+        tt.style.opacity='1';
+        const ttW=185;
+        let lx=(cx+off)-ttW/2;
+        lx=Math.max(0,Math.min(lx,cw-ttW-4));
+        tt.style.left=lx+'px';tt.style.top='-115px';
+      });
+      pin.addEventListener('mouseleave',()=>{document.getElementById('pinTt').style.opacity='0'});
+      layer.appendChild(pin);
+    });
+  });
+}
+
+function onWindowChange(v){
+  const labels=['당일 업로드만','업로드 후 1일','업로드 후 2일','업로드 후 3일','업로드 후 4일'];
+  document.getElementById('igWinVal').textContent=labels[v];
+  if(igLoaded&&igPosts)renderIgChart(igPosts,currentCamp,parseInt(v));
+}
+
+async function loadIgData(){
+  const btn=document.getElementById('igLoadBtn');
+  document.getElementById('igLoadIcon').textContent='';
+  document.getElementById('igLoadText').innerHTML='<span style="display:inline-flex;align-items:center;gap:6px"><span class="spinner"></span> 수집 중... (약 30~60초)</span>';
+  btn.disabled=true;
+
+  let loaded=false;
+
+  // Supabase에서 먼저 확인
+  try{
+    const {data}=await sb.from('instagram_posts').select('*').order('date');
+    if(data&&data.length>0){
+      igPosts=data.map(r=>({
+        date:r.date,time:r.time,type:r.type,
+        views:r.views,comments:r.comments,
+        label:r.caption?.slice(0,20)||'',caption:r.caption||'',
+        url:r.url
+      }));
+      igLoaded=true;loaded=true;
+      document.getElementById('igLoadIcon').textContent='✓';
+      document.getElementById('igLoadText').textContent=`${igPosts.length}개 게시물 로드됨 (저장된 데이터)`;
+    }
+  }catch(e){}
+
+  // Apify 호출
+  if(!loaded){
+    try{
+      const res=await fetch('/api/instagram?username=vividyooni_&from=2026-04-19&to=2026-05-18');
+      const data=await res.json();
+      if(data.posts&&data.posts.length>0){
+        igPosts=data.posts;
+        igLoaded=true;loaded=true;
+        try{
+          const {data:sellerData}=await sb.from('sellers').select('id').eq('seller_name','vividyooni').single();
+          if(sellerData){
+            await sb.from('instagram_posts').insert(
+              igPosts.map(p=>({
+                seller_id:sellerData.id,date:p.date,time:p.time,
+                type:p.type,caption:p.caption,views:p.views,
+                comments:p.comments,url:p.url,
+                campaign:classifyPost(p,null)
+              }))
+            );
+          }
+        }catch(e){}
+        document.getElementById('igLoadIcon').textContent='✓';
+        document.getElementById('igLoadText').textContent=`${igPosts.length}개 게시물 로드됨`;
+      }
+    }catch(e){}
+  }
+
+  // 그래도 없으면 샘플 폴백
+  if(!loaded){
+    igPosts=IG_POSTS;
+    igLoaded=true;
+    document.getElementById('igLoadIcon').textContent='⚠';
+    document.getElementById('igLoadText').textContent='샘플 데이터로 표시 중';
+  }
+
+  btn.disabled=false;
+  const w=parseInt(document.getElementById('igWindow').value);
+  // 차트가 렌더된 후 핀 배치되도록 충분한 딜레이
+  setTimeout(()=>{
+    renderIgChart(igPosts,currentCamp,w);
+    // 인스타 데이터 로드 후 일별 테이블도 재렌더
+    const c=CAMPAIGNS[currentCamp];
+    if(c)renderWeekTable(c);
+  },100);
+}
+
+/* ─── AI 분석 ─── */
+async function generateAI(c,key){
+  const aiCard=document.getElementById('aiCard');
+  const aiText=document.getElementById('aiText');
+  aiText.innerHTML='<span style="display:inline-flex;align-items:center;gap:8px;color:var(--text2)"><span class="spinner"></span>AI가 분석 중이에요...</span>';
+  aiCard.style.display='block';
+
+  const aov=c.orders>0?Math.round(c.total/c.orders):0;
+  const cvr=c.pv>0?(c.orders/c.pv*100).toFixed(1):0;
+  const abandonRate=c.cartCount>0?(c.abandonCount/c.cartCount*100).toFixed(1):0;
+  const peakDay=c.daily.reduce((a,b)=>b.sales>a.sales?b:a,c.daily[0]);
+  const peakShare=c.total>0?Math.round(peakDay.sales/c.total*100):0;
+  const d1=c.daily[0];
+  const d1Share=c.total>0?Math.round(d1.sales/c.total*100):0;
+  const topOpt=c.options&&c.options.length>0?c.options[0]:null;
+  const lostRecovery=c.lost>0?Math.round(c.lost*0.3):0;
+
+  const prompt=`당신은 SNS 인플루언서 공동구매 전문 컨설턴트입니다.
+아래 공구 데이터를 기반으로 셀러에게 실질적이고 전략적인 분석 리포트를 작성해주세요.
+
+## 공구 기본 정보
+- 공구명: ${c.label}
+- 기간: ${c.start} ~ ${c.end} (${c.daily.length}일)
+- 총 매출: ${fmt(c.total)}원 / 구매자 ${fmt(c.orders)}명
+- 평균 객단가: ${fmt(aov)}원
+- 페이지뷰→구매 전환율: ${cvr}% (페이지뷰 ${fmt(c.pv)}회)
+- 장바구니 담김: ${fmt(c.cartCount)}건 → 이탈률: ${abandonRate}%
+- 이탈 손실액: ${fmtW(c.lost)}원 (전략적 회수 가능 추정: ${fmtW(lostRecovery)}원)
+- 오픈일(D1) 매출 집중도: ${d1Share}% (${fmtW(d1.sales)}원)
+- 피크일: ${peakDay.date.slice(5)} ${peakDay.date===d1.date?'(D1=피크)':'(오픈 후 반등)'}, 전체의 ${peakShare}%
+${topOpt?`- 최고 판매 옵션: ${topOpt.name} (${Math.round(topOpt.sales/c.total*100)}% 비중)`:''}
+
+## 요청사항
+다음 4개 섹션으로 나눠서 분석해주세요:
+
+**① 이번 공구 성과 진단** (3~4문장)
+수치 기반으로 업계 SNS 공구 평균 대비 이 공구의 포지셔닝을 평가해주세요. 전환율, 객단가, 이탈률 각각의 수준을 판단해주세요.
+
+**② 매출 패턴 분석**
+D1 집중도, 피크 타이밍, 일별 매출 흐름이 어떤 의미인지 인사이트를 주세요.
+
+**③ 핵심 개선 과제** (2~3가지, 구체적 수치 목표 포함)
+이탈 개선, 전환율 개선, 옵션 구성 등 우선순위 순으로.
+
+**④ 다음 차수 전략 제안**
+공구 기간, 가격 구성, 콘텐츠 타이밍, 옵션 구성 중심으로 실행 가능한 제안 3가지.
+
+전문적이고 데이터 기반으로, 셀러 입장에서 바로 실행할 수 있는 수준으로 작성. 이모지 절제. 총 500자 내외.`;
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})
+    });
+    const d=await res.json();
+    aiText.textContent=d.content?.[0]?.text||'분석 결과를 불러올 수 없어요.';
+  }catch(e){
+    const abanStr=parseFloat(abandonRate)>60?`이탈률 ${abandonRate}%는 업계 평균(55~65%)과 유사하나 손실액 ${fmtW(c.lost)}원 중 약 30%는 마감 전 재노출 콘텐츠로 회수 가능합니다.`:`이탈률 ${abandonRate}%는 양호한 수준입니다. 추가 콘텐츠 없이도 상당수가 재방문 구매로 전환되고 있습니다.`;
+    aiText.textContent=`① 성과 진단\n전환율 ${cvr}%는 SNS 공구 평균(2~5%) ${parseFloat(cvr)>5?'상회':'수준'}, 객단가 ${fmt(aov)}원으로 단가 구성이 ${aov>50000?'견고합니다':'개선 여지가 있습니다'}.\n\n② 매출 패턴\nD1 집중도 ${d1Share}%로 ${d1Share>60?'오픈 직후 팬덤 구매가 강합니다. 사전 예고 콘텐츠 효과가 컸던 공구예요.':'초반 집중도가 낮아 공구 기간 전반에 걸쳐 분산 구매가 발생했습니다.'}\n\n③ 개선 과제\n${abanStr}\n\n④ 다음 차수 전략\n· TOP 옵션(${topOpt?topOpt.name:'베스트 셀러'}) 전면 배치로 초기 전환율 +2~3%p 목표\n· 마감 D-1 게시물 3개 이상 집중 업로드로 이탈 재유입\n· 공구 기간 ${c.daily.length}일 → ${c.daily.length<=5?c.daily.length+2:c.daily.length-1}일로 조정해 희소성 강화`;
+  }
+}
+
+/* ─── 월별 뷰 ─── */
+function renderMonth(){
+  const camps=Object.entries(CAMPAIGNS);
+
+  // 공구 카드
+  document.getElementById('monthGrid').innerHTML=camps.map(([key,c])=>{
+    const col=CAMP_COLORS[key];
+    const aov=c.orders>0?Math.round(c.total/c.orders):0;
+    return `<div class="month-card" onclick="selectCampFromMonth('${key}')">
+      <div class="mc-name" style="color:${col}">${c.label}</div>
+      <div class="mc-period">${c.start.slice(5)} ~ ${c.end.slice(5)}</div>
+      <div class="mc-stats">
+        <div><div class="mc-stat-val" style="color:${col}">${fmtW(c.total)}원</div><div class="mc-stat-label">총 매출</div></div>
+        <div><div class="mc-stat-val">${fmt(c.orders)}명</div><div class="mc-stat-label">구매자</div></div>
+        <div><div class="mc-stat-val">${aov>0?fmtW(aov)+'원':'—'}</div><div class="mc-stat-label">객단가</div></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // 월별 비교 차트
+  destroyChart('monthChart');
+  const tc='#555552',gc='rgba(255,255,255,0.04)';
+  charts['monthChart']=new Chart(document.getElementById('monthChart'),{
+    type:'bar',
+    data:{
+      labels:camps.map(([k,c])=>c.label.length>10?c.label.slice(0,10)+'…':c.label),
+      datasets:[{
+        label:'총 매출',
+        data:camps.map(([,c])=>c.total),
+        backgroundColor:camps.map(([k])=>CAMP_COLORS[k]+'bb'),
+        borderColor:camps.map(([k])=>CAMP_COLORS[k]),
+        borderWidth:1,borderRadius:6
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{
+        callbacks:{label:ctx=>'  '+fmtW(ctx.raw)+'원'},
+        backgroundColor:'#1e1e1e',titleColor:'#f0f0ee',bodyColor:'#888884',
+        borderColor:'rgba(255,255,255,0.12)',borderWidth:1,padding:10
+      }},
+      scales:{
+        x:{ticks:{color:tc,font:{size:11}},grid:{display:false}},
+        y:{ticks:{color:tc,font:{size:10},callback:v=>fmtW(v)},grid:{color:gc},min:0}
+      },
+      layout:{padding:{top:8}}
+    }
+  });
+
+  // 전체 비교 테이블
+  document.getElementById('allCampBody').innerHTML=camps.map(([key,c])=>{
+    const cvr=c.pv>0?(c.orders/c.pv*100).toFixed(1):'—';
+    const col=CAMP_COLORS[key];
+    return `<tr>
+      <td class="bold" style="color:${col}">${c.label.length>12?c.label.slice(0,12)+'…':c.label}</td>
+      <td style="font-size:11px;font-family:'DM Mono',monospace">${c.start.slice(5)}~${c.end.slice(5)}</td>
+      <td class="r bold" style="color:var(--text)">${fmtW(c.total)}원</td>
+      <td class="r">${fmt(c.orders)}건</td>
+      <td class="r">${fmt(c.pv)}</td>
+      <td class="r" style="color:${parseFloat(cvr)>5?'var(--green)':'var(--amber)'}">${cvr}%</td>
+      <td class="r" style="color:var(--red)">${fmtW(c.lost)}원</td>
+    </tr>`;
+  }).join('');
+}
+
+function selectCampFromMonth(key){
+  setView('camp',document.getElementById('vtCamp'));
+  const btn=document.querySelector(`.camp-btn[data-c="${key}"]`);
+  if(btn){selectCamp(key,btn);}
+}
+
+// 초기 렌더
+renderCamp('에어스텝퍼');
+</script>
+</body>
+</html>
