@@ -199,11 +199,12 @@ html{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
   <div class="camp-meta" id="campMeta"></div>
 
   <!-- KPI -->
-  <div class="summary-grid">
+  <div class="summary-grid" style="grid-template-columns:repeat(5,1fr)">
     <div class="sk accent"><div class="sk-label">총 매출</div><div class="sk-val" id="kSales">—</div><div class="sk-sub" id="kSalesSub">—</div></div>
-    <div class="sk"><div class="sk-label">구매자 수</div><div class="sk-val" id="kOrders">—</div><div class="sk-sub">명</div></div>
-    <div class="sk amber"><div class="sk-label">평균 객단가</div><div class="sk-val" id="kAov">—</div><div class="sk-sub">1인당 평균</div></div>
+    <div class="sk"><div class="sk-label">출고 건수</div><div class="sk-val" id="kOrders">—</div><div class="sk-sub" id="kQty">—</div></div>
+    <div class="sk amber"><div class="sk-label">평균 객단가</div><div class="sk-val" id="kAov">—</div><div class="sk-sub">1건당 평균</div></div>
     <div class="sk blue"><div class="sk-label">구매 전환율</div><div class="sk-val" id="kCvr">—</div><div class="sk-sub" id="kCvrSub">—</div></div>
+    <div class="sk" style="background:rgba(167,139,250,0.08);border-color:rgba(167,139,250,0.2)"><div class="sk-label">마진</div><div class="sk-val" id="kMargin" style="color:#a78bfa">—</div><div class="sk-sub" id="kMarginRate">—</div></div>
   </div>
 
   <!-- 일별 집계 테이블 -->
@@ -270,7 +271,7 @@ html{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
       <table class="week-table">
         <thead><tr>
           <th>옵션명</th><th class="r">판매건수</th><th class="r">수량</th>
-          <th class="r">매출</th><th class="r">비중</th><th style="width:80px"></th>
+          <th class="r">매출</th><th class="r">원가</th><th class="r">마진</th><th class="r">비중</th><th style="width:60px"></th>
         </tr></thead>
         <tbody id="optionBody"></tbody>
       </table>
@@ -364,7 +365,7 @@ html{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
           <th>공구</th><th>기간</th>
           <th class="r">총 매출</th><th class="r">주문</th>
           <th class="r">페이지뷰</th><th class="r">전환율</th>
-          <th class="r">이탈 손실</th>
+          <th class="r">마진율</th><th class="r">이탈 손실</th>
         </tr></thead>
         <tbody id="allCampBody"></tbody>
       </table>
@@ -384,97 +385,155 @@ const CAMP_COLORS={'에어스텝퍼':'#4a9eff','괄사빗':'#00c97a','더핏':'#
 
 const CAMPAIGNS={
   '에어스텝퍼':{
-    label:'에어스텝퍼 6차',start:'2026-04-20',end:'2026-04-28',
-    products:['에어스텝퍼 6차','[vivid secret] 에어스텝퍼'],
+    label:'에어스텝퍼 6차',start:'2026-04-22',end:'2026-05-03',
     igKeywords:['에어스텝퍼','스텝퍼'],
-    total:72091800,orders:946,pv:19994,cartCount:1840,abandonCount:932,lost:82983416,
+    total:79299000,supply:70718652,cost:61922640,margin:17376360,marginRate:21.9,
+    orders:891,qty:892,aov:89000,pv:19994,cartCount:1840,abandonCount:932,lost:82983416,
     options:[
-      {name:'에어스텝퍼 토프베이지 1개',orders:480,qty:480,sales:42720000},
-      {name:'에어스텝퍼 블랙 1개',orders:280,qty:280,sales:17640000},
-      {name:'에어스텝퍼 화이트 1개',orders:186,qty:186,sales:11731800},
+      {name:'토프베이지 [1만원할인]',orders:413,qty:413,sales:36757000,cost:28670460},
+      {name:'토프베이지 [4천원할인]',orders:239,qty:240,sales:21360000,cost:16660800},
+      {name:'블루그레이 [1만원할인]',orders:92,qty:92,sales:8188000,cost:6386640},
+      {name:'토프베이지 [7천원할인]',orders:76,qty:76,sales:6764000,cost:5275920},
+      {name:'블루그레이 [4천원할인]',orders:49,qty:49,sales:4361000,cost:3401580},
+      {name:'블루그레이 [7천원할인]',orders:21,qty:21,sales:1869000,cost:1457820},
     ],
     daily:[
-      {date:'2026-04-20',sales:0,orders:1},{date:'2026-04-21',sales:0,orders:2},
-      {date:'2026-04-22',sales:39659000,orders:531},{date:'2026-04-23',sales:7788000,orders:106},
-      {date:'2026-04-24',sales:6890800,orders:88},{date:'2026-04-25',sales:6058000,orders:77},
-      {date:'2026-04-26',sales:6730000,orders:80},{date:'2026-04-27',sales:4284000,orders:53},
-      {date:'2026-04-28',sales:85000,orders:1}
+      {date:'2026-04-22',sales:35491000,orders:397,cost:27675060},
+      {date:'2026-04-23',sales:9591000,orders:107,cost:7482480},
+      {date:'2026-04-24',sales:8099000,orders:91,cost:6317220},
+      {date:'2026-04-25',sales:7120000,orders:80,cost:5553600},
+      {date:'2026-04-26',sales:7031000,orders:79,cost:5484180},
+      {date:'2026-04-27',sales:5340000,orders:60,cost:4165200},
+      {date:'2026-04-28',sales:2136000,orders:24,cost:1666080},
+      {date:'2026-04-29',sales:1958000,orders:22,cost:1527240},
+      {date:'2026-04-30',sales:1246000,orders:14,cost:971880},
+      {date:'2026-05-02',sales:445000,orders:5,cost:347100},
+      {date:'2026-05-03',sales:89000,orders:1,cost:69420},
+      {date:'2026-05-04',sales:267000,orders:3,cost:208260},
+      {date:'2026-05-05',sales:356000,orders:4,cost:277680},
+      {date:'2026-05-06',sales:267000,orders:3,cost:208260},
+      {date:'2026-05-09',sales:267000,orders:3,cost:208260},
+      {date:'2026-05-18',sales:89000,orders:1,cost:69420}
     ]
   },
   '괄사빗':{
     label:'웰리브 림프순환 두피 괄사빗 2차',start:'2026-05-12',end:'2026-05-18',
-    products:['웰리브 림프순환 두피 괄사빗 2차'],
     igKeywords:['괄사','반려빗','두피빗','림프','빗질'],
-    total:26499000,orders:263,pv:5137,cartCount:446,abandonCount:191,lost:13179000,
+    total:27003000,supply:21211759,cost:16324900,margin:10678100,marginRate:39.5,
+    orders:251,qty:251,aov:107582,pv:5137,cartCount:446,abandonCount:191,lost:13179000,
     options:[
-      {name:'괄사빗 1개',orders:163,qty:163,sales:11247000},
-      {name:'괄사빗 2개 (패밀리)',orders:68,qty:136,sales:9384000},
-      {name:'괄사빗 3개 (단체)',orders:32,qty:96,sales:5868000},
+      {name:'림프순환 두피 괄사빗 2개',orders:150,qty:150,sales:19350000,cost:11700000},
+      {name:'림프순환 두피 괄사빗 1개',orders:97,qty:97,sales:6693000,cost:4044900},
+      {name:'림프순환 두피 괄사빗 4개',orders:4,qty:4,sales:960000,cost:580000},
     ],
     daily:[
-      {date:'2026-05-12',sales:17253000,orders:167},{date:'2026-05-13',sales:2468600,orders:27},
-      {date:'2026-05-14',sales:1359000,orders:14},{date:'2026-05-15',sales:1153000,orders:11},
-      {date:'2026-05-16',sales:2393400,orders:24},{date:'2026-05-17',sales:961000,orders:10},
-      {date:'2026-05-18',sales:911000,orders:10}
+      {date:'2026-05-12',sales:16713000,orders:155,cost:9936300},
+      {date:'2026-05-13',sales:2484000,orders:24,cost:1545600},
+      {date:'2026-05-14',sales:1614000,orders:16,cost:975600},
+      {date:'2026-05-15',sales:1806000,orders:17,cost:1092000},
+      {date:'2026-05-16',sales:2172000,orders:21,cost:1326600},
+      {date:'2026-05-17',sales:1068000,orders:10,cost:648000},
+      {date:'2026-05-18',sales:1146000,orders:8,cost:700800}
     ]
   },
   '더핏':{
     label:'더핏브라 & 나시탑',start:'2026-05-14',end:'2026-05-18',
-    products:['더핏브라 서포트 A~D컵','더핏브라 서포트 E~F컵','더핏 슬립업 나시 브라탑','더핏 슬립업 나시 크롭탑','더핏 팬티'],
     igKeywords:['더핏','브라','나시탑','속옷','나시브라'],
-    total:21393820,orders:96,pv:2449,cartCount:544,abandonCount:302,lost:8861400,
+    total:7208000,supply:6074905,cost:5045600,margin:2162400,marginRate:30.0,
+    orders:242,qty:271,aov:29785,pv:2449,cartCount:544,abandonCount:302,lost:8861400,
     options:[
-      {name:'더핏브라 서포트 A~D컵 (블랙)',orders:86,qty:86,sales:7510540},
-      {name:'더핏브라 서포트 A~D컵 (스킨)',orders:72,qty:72,sales:6036640},
-      {name:'더핏브라 서포트 A~D컵 (화이트)',orders:42,qty:42,sales:3004300},
-      {name:'더핏브라 서포트 A~D컵 (크림)',orders:28,qty:28,sales:2385200},
-      {name:'더핏브라 서포트 A~D컵 (핑크)',orders:20,qty:20,sales:1676540},
+      {name:'더핏브라 서포트 2장',orders:68,qty:70,sales:1953000,cost:1367100},
+      {name:'더핏브라 서포트 3장 이상',orders:41,qty:52,sales:1450800,cost:1015560},
+      {name:'슬림업 나시 브라탑 2장',orders:32,qty:34,sales:1088000,cost:761600},
+      {name:'슬림업 나시 크롭탑 2장',orders:21,qty:24,sales:720000,cost:504000},
+      {name:'슬림업 나시 브라탑 1장',orders:14,qty:14,sales:462000,cost:323400},
+      {name:'더핏브라 서포트 1장',orders:13,qty:14,sales:432600,cost:302820},
     ],
     daily:[
-      {date:'2026-05-14',sales:10151320,orders:44},{date:'2026-05-15',sales:3421000,orders:17},
-      {date:'2026-05-16',sales:1413400,orders:8},{date:'2026-05-17',sales:4857400,orders:16},
-      {date:'2026-05-18',sales:1550700,orders:11}
+      {date:'2026-05-14',sales:3490200,orders:118,cost:2443140},
+      {date:'2026-05-15',sales:1272600,orders:43,cost:890820},
+      {date:'2026-05-16',sales:524000,orders:18,cost:366800},
+      {date:'2026-05-17',sales:1453200,orders:49,cost:1017240},
+      {date:'2026-05-18',sales:468000,orders:14,cost:327600}
     ]
   },
   '베이키드콘':{
-    label:'베이키드콘 오리지날&와사비맛 1차',start:'2026-04-28',end:'2026-05-06',
-    products:['베이키드콘 오리지날&와사비맛 1차'],
+    label:'베이키드콘 오리지날&와사비맛 1차',start:'2026-04-28',end:'2026-05-07',
     igKeywords:['베이키드콘','와사비','오리지날','콘'],
-    total:2050800,orders:49,pv:0,cartCount:0,abandonCount:0,lost:0,
+    total:1655200,supply:1365214,cost:1108984,margin:546216,marginRate:33.0,
+    orders:56,qty:61,aov:29557,pv:0,cartCount:0,abandonCount:0,lost:0,
     options:[
-      {name:'오리지날 단품',orders:22,qty:22,sales:924000},
-      {name:'와사비 단품',orders:18,qty:18,sales:756000},
-      {name:'혼합(오리지날+와사비)',orders:9,qty:18,sales:370800},
+      {name:'오리지날+와사비 혼합 12개',orders:10,qty:10,sales:672000,cost:450240},
+      {name:'오리지날3개+와사비2개',orders:15,qty:15,sales:427500,cost:286425},
+      {name:'오리지날 12개(1박스)',orders:3,qty:3,sales:201600,cost:135072},
+      {name:'오리지날 5개',orders:4,qty:4,sales:114000,cost:76380},
+      {name:'오리지날 3개',orders:6,qty:6,sales:104400,cost:69948},
+      {name:'와사비맛 1개',orders:9,qty:12,sales:70800,cost:47436},
     ],
     daily:[
-      {date:'2026-04-28',sales:728900,orders:17},{date:'2026-04-29',sales:523600,orders:12},
-      {date:'2026-04-30',sales:31500,orders:1},{date:'2026-05-01',sales:133600,orders:4},
-      {date:'2026-05-02',sales:236700,orders:4},{date:'2026-05-03',sales:128400,orders:4},
-      {date:'2026-05-04',sales:51900,orders:2},{date:'2026-05-05',sales:31500,orders:1},
-      {date:'2026-05-06',sales:184700,orders:4}
+      {date:'2026-04-28',sales:537300,orders:19,cost:359889},
+      {date:'2026-04-29',sales:384900,orders:14,cost:257883},
+      {date:'2026-04-30',sales:67200,orders:2,cost:45024},
+      {date:'2026-05-01',sales:104400,orders:4,cost:69948},
+      {date:'2026-05-02',sales:201600,orders:3,cost:135072},
+      {date:'2026-05-04',sales:104400,orders:4,cost:69948},
+      {date:'2026-05-05',sales:67200,orders:3,cost:45024},
+      {date:'2026-05-06',sales:67200,orders:3,cost:45024},
+      {date:'2026-05-07',sales:121000,orders:4,cost:81072}
     ]
   },
   '작영오일':{
-    label:'작영 트리플에이 에너지오일 1차',start:'2026-04-27',end:'2026-05-06',
-    products:['작영 트리플에이 에너지오일 1차'],
+    label:'작영 트리플에이 에너지오일 1차',start:'2026-04-27',end:'2026-05-09',
     igKeywords:['에너지오일','트리플에이','오일','작영'],
-    total:21258300,orders:135,pv:2073,cartCount:264,abandonCount:137,lost:11919000,
+    total:21222000,supply:16137694,cost:13636400,margin:7585600,marginRate:35.7,
+    orders:134,qty:140,aov:158373,pv:2073,cartCount:264,abandonCount:137,lost:11919000,
     options:[
-      {name:'에너지오일 1병',orders:82,qty:82,sales:7134000},
-      {name:'에너지오일 2병 (세트)',orders:38,qty:76,sales:9804300},
-      {name:'에너지오일 3병 (패밀리)',orders:15,qty:45,sales:4320000},
+      {name:'작영오일 1개',orders:84,qty:90,sales:7830000,cost:4734000},
+      {name:'작영오일 3개',orders:44,qty:44,sales:10692000,cost:7000400},
+      {name:'작영오일 6개',orders:6,qty:6,sales:2700000,cost:1902000},
     ],
     daily:[
-      {date:'2026-04-27',sales:4164800,orders:31},{date:'2026-04-28',sales:3953000,orders:21},
-      {date:'2026-04-29',sales:3365000,orders:24},{date:'2026-04-30',sales:2049000,orders:12},
-      {date:'2026-05-01',sales:1640000,orders:11},{date:'2026-05-02',sales:1523000,orders:8},
-      {date:'2026-05-03',sales:943000,orders:7},{date:'2026-05-04',sales:1075000,orders:7},
-      {date:'2026-05-05',sales:1943000,orders:11},{date:'2026-05-06',sales:359500,orders:2}
+      {date:'2026-04-27',sales:4002000,orders:44,cost:2563200},
+      {date:'2026-04-28',sales:3219000,orders:36,cost:2062200},
+      {date:'2026-04-29',sales:2784000,orders:30,cost:1784400},
+      {date:'2026-04-30',sales:2001000,orders:22,cost:1282200},
+      {date:'2026-05-01',sales:1653000,orders:18,cost:1058400},
+      {date:'2026-05-02',sales:1566000,orders:17,cost:1003200},
+      {date:'2026-05-03',sales:957000,orders:10,cost:613200},
+      {date:'2026-05-04',sales:870000,orders:9,cost:557400},
+      {date:'2026-05-05',sales:2088000,orders:22,cost:1338000},
+      {date:'2026-05-06',sales:957000,orders:10,cost:613200},
+      {date:'2026-05-07',sales:696000,orders:7,cost:446400},
+      {date:'2026-05-08',sales:261000,orders:3,cost:167400},
+      {date:'2026-05-09',sales:87000,orders:1,cost:55800}
     ]
   }
 };
 
 const IG_POSTS=[
+  // ── 에어스텝퍼 6차 사전/공구 기간 (4월) ──
+  {date:'2026-04-19',time:'06:00',type:'릴스',views:15200,comments:42,label:'에어스텝퍼 예고',caption:'에어스텝퍼 6차 공구 예고'},
+  {date:'2026-04-20',time:'08:00',type:'카드뉴스',views:0,comments:88,label:'에어스텝퍼 오픈',caption:'에어스텝퍼 6차 오픈 구매'},
+  {date:'2026-04-21',time:'10:00',type:'릴스',views:32400,comments:56,label:'스텝퍼 효과',caption:'에어스텝퍼 다이어트 효과'},
+  {date:'2026-04-22',time:'07:00',type:'카드뉴스',views:0,comments:124,label:'스텝퍼 후기',caption:'에어스텝퍼 구매 후기'},
+  {date:'2026-04-23',time:'09:00',type:'릴스',views:28600,comments:38,label:'스텝퍼 운동법',caption:'에어스텝퍼 올바른 사용법'},
+  {date:'2026-04-24',time:'11:00',type:'릴스',views:19800,comments:27,label:'스텝퍼 비교',caption:'에어스텝퍼 vs 일반스텝퍼'},
+  {date:'2026-04-25',time:'08:30',type:'카드뉴스',views:0,comments:65,label:'스텝퍼 마감임박',caption:'에어스텝퍼 마감 임박'},
+  {date:'2026-04-26',time:'10:00',type:'릴스',views:22100,comments:33,label:'스텝퍼 일상',caption:'에어스텝퍼 일상 활용'},
+  {date:'2026-04-27',time:'09:00',type:'카드뉴스',views:0,comments:45,label:'스텝퍼 마감',caption:'에어스텝퍼 마감 공지'},
+  // ── 작영오일 (4월 말) ──
+  {date:'2026-04-26',time:'14:00',type:'릴스',views:18400,comments:29,label:'작영오일 예고',caption:'작영 트리플에이 에너지오일 공구'},
+  {date:'2026-04-27',time:'08:00',type:'카드뉴스',views:0,comments:76,label:'작영오일 오픈',caption:'작영오일 트리플에이 오픈'},
+  {date:'2026-04-28',time:'10:00',type:'릴스',views:12300,comments:18,label:'작영오일 효과',caption:'트리플에이 에너지오일 효과'},
+  {date:'2026-04-29',time:'09:00',type:'릴스',views:9800,comments:14,label:'작영오일 후기',caption:'작영 에너지오일 후기'},
+  {date:'2026-04-30',time:'11:00',type:'카드뉴스',views:0,comments:32,label:'작영오일 중간',caption:'트리플에이 오일 중간 점검'},
+  {date:'2026-05-02',time:'10:00',type:'릴스',views:7600,comments:11,label:'작영오일 마감임박',caption:'작영오일 마감 임박'},
+  {date:'2026-05-04',time:'09:00',type:'카드뉴스',views:0,comments:22,label:'작영오일 마감',caption:'에너지오일 마감 공지'},
+  // ── 베이키드콘 (4월 말) ──
+  {date:'2026-04-27',time:'15:00',type:'릴스',views:8900,comments:12,label:'베이키드콘 예고',caption:'베이키드콘 오리지날 와사비'},
+  {date:'2026-04-28',time:'12:00',type:'카드뉴스',views:0,comments:38,label:'베이키드콘 오픈',caption:'베이키드콘 공구 오픈'},
+  {date:'2026-05-01',time:'10:00',type:'릴스',views:5600,comments:8,label:'베이키드콘 리뷰',caption:'베이키드콘 맛 리뷰'},
+  // ── 괄사빗/더핏 (5월) ──
   {date:'2026-05-08',time:'04:24',type:'릴스',views:8652,comments:9,label:'D-4 라방 영상',caption:'괄사빗 한쪽만 올라간'},
   {date:'2026-05-08',time:'14:53',type:'릴스',views:10710,comments:34,label:'얼굴라인 괄사효과',caption:'반려괄사빗 얼굴라인'},
   {date:'2026-05-09',time:'03:35',type:'카드뉴스',views:0,comments:15,label:'괄사빗 후기 이벤트',caption:'반려괄사빗 후기'},
@@ -575,14 +634,17 @@ function renderCamp(key){
     <span class="camp-tag">${c.daily.length}일 진행</span>`;
 
   // KPI
-  const aov=c.orders>0?c.total/c.orders:0;
+  const aov=c.aov||0;
   const cvr=c.pv>0?(c.orders/c.pv*100):0;
   document.getElementById('kSales').textContent=fmtW(c.total)+'원';
   document.getElementById('kSalesSub').textContent=`총 ${fmt(c.total)}원`;
   document.getElementById('kOrders').textContent=fmt(c.orders);
+  document.getElementById('kQty').textContent=`수량 ${fmt(c.qty||c.orders)}개`;
   document.getElementById('kAov').textContent=fmtW(aov)+'원';
-  document.getElementById('kCvr').textContent=cvr.toFixed(1)+'%';
-  document.getElementById('kCvrSub').textContent=`페이지뷰 ${fmt(c.pv)}회 기준`;
+  document.getElementById('kCvr').textContent=cvr>0?cvr.toFixed(1)+'%':'—';
+  document.getElementById('kCvrSub').textContent=c.pv>0?`페이지뷰 ${fmt(c.pv)}회 기준`:'페이지뷰 데이터 없음';
+  document.getElementById('kMargin').textContent=fmtW(c.margin||0)+'원';
+  document.getElementById('kMarginRate').textContent=`마진율 ${c.marginRate||0}%`;
 
   // 주차 집계
   renderWeekTable(c);
@@ -633,12 +695,16 @@ function renderOptions(c){
   const colors=['#00c97a','#4a9eff','#ff6b9d','#f5a623','#a78bfa','#34d399','#fb923c'];
   document.getElementById('optionBody').innerHTML=c.options.map((o,i)=>{
     const sp=totalS>0?Math.round(o.sales/totalS*100):0;
+    const margin=o.cost?(o.sales-o.cost):null;
+    const marginRate=margin&&o.sales>0?Math.round(margin/o.sales*100):null;
     const name=o.name.length>22?o.name.slice(0,22)+'…':o.name;
     return `<tr>
       <td class="bold" title="${o.name}">${name}</td>
       <td class="r">${fmt(o.orders)}건</td>
       <td class="r">${fmt(o.qty)}개</td>
       <td class="r bold" style="color:var(--text)">${fmtW(o.sales)}원</td>
+      <td class="r" style="color:var(--text2)">${o.cost?fmtW(o.cost)+'원':'—'}</td>
+      <td class="r" style="color:#a78bfa">${margin?fmtW(margin)+'원 ('+marginRate+'%)':'—'}</td>
       <td class="r" style="color:${colors[i%colors.length]};font-weight:600">${sp}%</td>
       <td><div style="height:4px;background:var(--surface3);border-radius:2px"><div style="height:4px;border-radius:2px;background:${colors[i%colors.length]};width:${sp}%"></div></div></td>
     </tr>`;
@@ -795,16 +861,17 @@ function strengthText(r){
 function filterPostsForCamp(posts,campKey){
   if(!campKey||campKey==='all')return posts;
   const kws=CAMPAIGNS[campKey]?.igKeywords||[];
-  // 공구 기간 ±7일 내 게시물 + 키워드 매칭
   const camp=CAMPAIGNS[campKey];
   const start=new Date(camp.start);
   const end=new Date(camp.end);
-  const rangeStart=new Date(start);rangeStart.setDate(rangeStart.getDate()-7);
+  // 공구 시작 14일 전부터 ~ 종료일까지
+  const rangeStart=new Date(start);rangeStart.setDate(rangeStart.getDate()-14);
   return posts.filter(p=>{
     const pd=new Date(p.date);
     const inRange=pd>=rangeStart&&pd<=end;
-    const hasKw=kws.some(k=>p.caption.includes(k))||inRange;
-    return inRange&&hasKw;
+    // 범위 내 + 키워드 둘 중 하나라도 해당하면 포함
+    const hasKw=kws.some(k=>p.caption.includes(k));
+    return inRange&&(hasKw||pd>=start); // 공구 기간 내는 키워드 무관 포함
   });
 }
 
@@ -953,7 +1020,7 @@ function buildPins(posts,campKey,w,allDates,salesByDate){
 
       pin.addEventListener('mouseenter',()=>{
         const tt=document.getElementById('pinTt');
-        document.getElementById('ptTitle').textContent=p.label;
+        document.getElementById('ptTitle').textContent=p.label||(p.caption?.slice(0,25)||'—');
         const tag=document.getElementById('ptTag');
         tag.textContent=p.type;
         tag.style.background=col+'22';tag.style.color=col;
@@ -996,66 +1063,81 @@ async function loadIgData(){
   btn.disabled=true;
 
   let loaded=false;
+  const FROM_DATE='2026-04-19';
+  const TO_DATE='2026-05-18';
 
-  // Supabase에서 먼저 확인
+  // Supabase에서 확인 — 4월 데이터(from 날짜) 포함 여부 체크
   try{
-    if(sb) {
-      const {data}=await sb.from('instagram_posts').select('*').order('date');
-      if(data&&data.length>0){
+    if(sb){
+      const {data}=await sb.from('instagram_posts').select('*')
+        .gte('date', FROM_DATE).lte('date', TO_DATE).order('date');
+      // 4월 데이터가 있는지 확인 (4월 30일 이전 게시물)
+      const hasAprilData = data && data.some(r=>r.date<='2026-04-30');
+      if(data && data.length>0 && hasAprilData){
         igPosts=data.map(r=>({
           date:r.date,time:r.time,type:r.type,
           views:r.views,comments:r.comments,
-          label:r.caption?.slice(0,20)||'',caption:r.caption||'',
+          label:r.label||r.caption?.slice(0,25)||'',
+          caption:r.caption||'',
           url:r.url
         }));
         igLoaded=true;loaded=true;
         document.getElementById('igLoadIcon').textContent='✓';
-        document.getElementById('igLoadText').textContent=`${igPosts.length}개 게시물 로드됨 (저장된 데이터)`;
+        document.getElementById('igLoadText').textContent=igPosts.length+'개 게시물 로드됨 (저장된 데이터 · '+FROM_DATE+'~'+TO_DATE+')';
+      } else if(data && data.length>0 && !hasAprilData){
+        // 5월 데이터만 있음 → 4월 포함 재수집 필요 알림
+        document.getElementById('igLoadText').innerHTML='<span style="display:inline-flex;align-items:center;gap:6px"><span class="spinner"></span> 4월 데이터 없음 — Apify 재수집 중...</span>';
       }
     }
   }catch(e){}
 
-  // Apify 호출
+  // Apify 호출 (4월 데이터 없거나 Supabase 실패 시)
   if(!loaded){
     try{
-      const res=await fetch('/api/instagram?username=vividyooni_&from=2026-04-19&to=2026-05-18');
+      const res=await fetch('/api/instagram?username=vividyooni_&from='+FROM_DATE+'&to='+TO_DATE);
       const data=await res.json();
       if(data.posts&&data.posts.length>0){
         igPosts=data.posts;
         igLoaded=true;loaded=true;
+        // Supabase 기존 데이터 삭제 후 재저장
         try{
-          const {data:sellerData}=await sb.from('sellers').select('id').eq('seller_name','vividyooni').single();
-          if(sellerData){
-            await sb.from('instagram_posts').insert(
-              igPosts.map(p=>({
-                seller_id:sellerData.id,date:p.date,time:p.time,
-                type:p.type,caption:p.caption,views:p.views,
-                comments:p.comments,url:p.url,
-                campaign:classifyPost(p,null)
-              }))
-            );
+          if(sb){
+            const {data:sellerData}=await sb.from('sellers').select('id').eq('seller_name','vividyooni').single();
+            if(sellerData){
+              // 기존 데이터 삭제
+              await sb.from('instagram_posts').delete().eq('seller_id',sellerData.id);
+              // 새 데이터 저장
+              await sb.from('instagram_posts').insert(
+                igPosts.map(p=>({
+                  seller_id:sellerData.id,date:p.date,time:p.time,
+                  type:p.type,caption:p.caption,label:p.label||'',
+                  views:p.views,comments:p.comments,url:p.url,
+                  campaign:classifyPost(p,null)
+                }))
+              );
+            }
           }
         }catch(e){}
         document.getElementById('igLoadIcon').textContent='✓';
-        document.getElementById('igLoadText').textContent=`${igPosts.length}개 게시물 로드됨`;
+        document.getElementById('igLoadText').textContent=igPosts.length+'개 게시물 로드됨 ('+FROM_DATE+'~'+TO_DATE+')';
       }
-    }catch(e){}
+    }catch(e){
+      console.error('Apify 호출 실패:',e);
+    }
   }
 
-  // 그래도 없으면 샘플 폴백
+  // 모두 실패 시 샘플 폴백
   if(!loaded){
     igPosts=IG_POSTS;
     igLoaded=true;
     document.getElementById('igLoadIcon').textContent='⚠';
-    document.getElementById('igLoadText').textContent='샘플 데이터로 표시 중';
+    document.getElementById('igLoadText').textContent='샘플 데이터로 표시 중 (API 연결 필요)';
   }
 
   btn.disabled=false;
   const w=parseInt(document.getElementById('igWindow').value);
-  // 차트가 렌더된 후 핀 배치되도록 충분한 딜레이
   setTimeout(()=>{
     renderIgChart(igPosts,currentCamp,w);
-    // 인스타 데이터 로드 후 일별 테이블도 재렌더
     const c=CAMPAIGNS[currentCamp];
     if(c)renderWeekTable(c);
   },100);
@@ -1184,6 +1266,7 @@ function renderMonth(){
       <td class="r">${fmt(c.orders)}건</td>
       <td class="r">${fmt(c.pv)}</td>
       <td class="r" style="color:${parseFloat(cvr)>5?'var(--green)':'var(--amber)'}">${cvr}%</td>
+      <td class="r" style="color:#a78bfa">${c.marginRate?c.marginRate+'%':'—'}</td>
       <td class="r" style="color:var(--red)">${fmtW(c.lost)}원</td>
     </tr>`;
   }).join('');
