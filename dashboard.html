@@ -11,9 +11,9 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#0e0e0e;--surface:#161616;--surface2:#1e1e1e;--surface3:#252525;
-  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
-  --text:#f0f0ee;--text2:#888884;--text3:#555552;
+  --bg:#0e0e0e;--surface:#161616;--surface2:#1e1e1e;--surface3:#2a2a2a;
+  --border:rgba(255,255,255,0.09);--border2:rgba(255,255,255,0.16);
+  --text:#f0f0ee;--text2:#a8a8a4;--text3:#707070;
   --green:#00c97a;--green-dim:rgba(0,201,122,0.12);
   --amber:#f5a623;--amber-dim:rgba(245,166,35,0.1);
   --blue:#4a9eff;--blue-dim:rgba(74,158,255,0.1);
@@ -811,9 +811,9 @@ function renderFunnel(c){
 }
 
 /* ─── Instagram ─── */
-function getAttrSales(post,w,campKey){
+function getAttrSales(post,w,campKey,forCorrelation=false){
   const camp=campKey&&campKey!=='all'?CAMPAIGNS[campKey]:null;
-  if(!camp)return null; // null = 표시 불가
+  if(!camp)return null;
 
   const salesByDate={};
   camp.daily.forEach(d=>salesByDate[d.date]=d.sales);
@@ -821,18 +821,19 @@ function getAttrSales(post,w,campKey){
   const di=camp.daily.findIndex(d=>d.date===post.date);
 
   if(di<0){
-    // 공구 시작 전 게시물 → 윈도우 내에 공구 오픈일이 포함되는지 확인
     const campStart=camp.daily[0].date;
     const diffMs=new Date(campStart)-new Date(post.date);
     const diffDays=Math.round(diffMs/86400000);
     if(diffDays>0&&diffDays<=w){
-      // 오픈일 매출만, 해당 공구만
       return {sales:Math.round(camp.daily[0].sales*Math.pow(0.65,diffDays)),isPre:true};
     }
-    return null; // 윈도우 밖이면 귀속 불가
+    // 상관관계 계산용: 사전 게시물은 오픈일 매출 전체를 귀속 (감쇠 없이)
+    if(forCorrelation&&diffDays>0&&diffDays<=14){
+      return {sales:camp.daily[0].sales,isPre:true};
+    }
+    return null;
   }
 
-  // 공구 기간 내 게시물 → 해당 공구 daily 매출만 합산
   let t=0;
   for(let k=0;k<=w&&di+k<camp.daily.length;k++)
     t+=camp.daily[di+k].sales*Math.pow(0.65,k);
@@ -919,10 +920,10 @@ function renderIgChart(posts,campKey,w){
   setTimeout(()=>buildPins(fp,campKey,w,allDates,salesByDate),300);
 
   // 상관관계 — 릴스(조회수 있는 것)만으로 조회수 상관 계산, 전체로 댓글/업로드수 계산
-  const reelValid=fp.filter(p=>p.views>0&&getAttrSales(p,w,campKey)!==null);
-  const reelAttr=reelValid.map(p=>{const r=getAttrSales(p,w,campKey);return r?r.sales:0;});
-  const validPosts=fp.filter(p=>getAttrSales(p,w,campKey)!==null);
-  const attrArr=validPosts.map(p=>{const r=getAttrSales(p,w,campKey);return r?r.sales:0;});
+  const reelValid=fp.filter(p=>p.views>0&&getAttrSales(p,w,campKey,true)!==null);
+  const reelAttr=reelValid.map(p=>{const r=getAttrSales(p,w,campKey,true);return r?r.sales:0;});
+  const validPosts=fp.filter(p=>getAttrSales(p,w,campKey,true)!==null);
+  const attrArr=validPosts.map(p=>{const r=getAttrSales(p,w,campKey,true);return r?r.sales:0;});
   const rV=pearson(reelValid.map(p=>p.views),reelAttr);
   const rC=pearson(validPosts.map(p=>p.comments),attrArr);
   const grouped={};fp.forEach(p=>{if(!grouped[p.date])grouped[p.date]=[];grouped[p.date].push(p);});
