@@ -1,6 +1,7 @@
 {
   "rewrites": [
     { "source": "/seller/:slug", "destination": "/index.html" },
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    { "source": "/dashboard", "destination": "/dashboard.html" },
+    { "source": "/((?!api/)(?!dashboard).*)", "destination": "/index.html" }
   ]
 }
