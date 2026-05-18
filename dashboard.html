@@ -795,13 +795,45 @@ function renderOptions(c){
   const totalO=c.options.reduce((a,o)=>a+o.orders,0);
   document.getElementById('optionTotal').textContent=`총 ${fmt(totalO)}건`;
   const colors=['#00c97a','#4a9eff','#ff6b9d','#f5a623','#a78bfa','#34d399','#fb923c'];
-  document.getElementById('optionBody').innerHTML=c.options.map((o,i)=>{
+
+  // 10% 미만 옵션을 "기타"로 묶기 (단, 옵션이 4개 이하면 묶지 않음)
+  let displayOptions;
+  if(c.options.length<=4){
+    displayOptions=c.options;
+  } else {
+    const main=[];
+    const etc=[];
+    c.options.forEach(o=>{
+      const sp=totalS>0?(o.sales/totalS*100):0;
+      if(sp>=10) main.push(o);
+      else etc.push(o);
+    });
+    // 기타가 2개 미만이면 묶을 의미 없음
+    if(etc.length<=1){
+      displayOptions=c.options;
+    } else {
+      const etcRow={
+        name:`그 외 ${etc.length}개 옵션`,
+        orders:etc.reduce((a,o)=>a+o.orders,0),
+        qty:etc.reduce((a,o)=>a+o.qty,0),
+        sales:etc.reduce((a,o)=>a+o.sales,0),
+        cost:etc.reduce((a,o)=>a+(o.cost||0),0),
+        _isEtc:true,
+        _etcDetail:etc.map(o=>o.name).join(', ')
+      };
+      displayOptions=[...main,etcRow];
+    }
+  }
+
+  document.getElementById('optionBody').innerHTML=displayOptions.map((o,i)=>{
     const sp=totalS>0?Math.round(o.sales/totalS*100):0;
     const margin=o.cost?(o.sales-o.cost):null;
     const marginRate=margin&&o.sales>0?Math.round(margin/o.sales*100):null;
     const name=o.name.length>22?o.name.slice(0,22)+'…':o.name;
+    const titleAttr=o._isEtc?o._etcDetail:o.name;
+    const nameStyle=o._isEtc?'color:var(--text3);font-style:italic':'';
     return `<tr>
-      <td class="bold" title="${o.name}" style="max-width:120px;word-break:keep-all">${name}</td>
+      <td class="bold" title="${titleAttr}" style="max-width:120px;word-break:keep-all;${nameStyle}">${name}</td>
       <td class="r">${fmt(o.orders)}건</td>
       <td class="r mob-hide">${fmt(o.qty)}개</td>
       <td class="r bold" style="color:var(--text)">${fmtW(o.sales)}원</td>
