@@ -407,7 +407,11 @@ html{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
     </div>
   </div>
 
-  <div class="section-title">인스타그램 × 매출 상관관계</div>
+  <div class="section-title">인스타그램 × 매출 상관관계 <span style="font-size:10px;font-weight:500;color:var(--text3);margin-left:8px">참고용</span></div>
+
+  <div style="background:rgba(245,166,35,0.08);border-left:3px solid var(--amber);border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:11px;color:var(--text2);line-height:1.5">
+    💡 인스타 분석은 <strong style="color:var(--text)">참고용 지표</strong>입니다. 게시물 매칭은 키워드 기반이라 정확도가 제한적이고, 매출 변동은 광고/시즌성/할인 등 여러 요인의 결과예요. 절대 수치보다 <strong style="color:var(--text)">트렌드 관찰</strong>로 봐주세요.
+  </div>
 
   <div class="ig-ctrl">
     <span class="ig-ctrl-label" style="display:flex;align-items:center;gap:5px">
@@ -1129,8 +1133,9 @@ function strengthText(r){
   const a=Math.abs(r);
   const pct=Math.round(a*100);
   const dir=r>=0?'많을수록 매출 ↑':'많을수록 매출 ↓';
-  if(a>0.7) return `<strong style="color:var(--green)">강한 연관 (${pct}%)</strong><br><span style="font-size:10px;color:var(--text3)">${dir}</span>`;
-  if(a>0.5) return `<strong style="color:var(--amber)">뚜렷한 연관 (${pct}%)</strong><br><span style="font-size:10px;color:var(--text3)">${dir}</span>`;
+  // 인스타 데이터는 매칭 정확도가 제한적이라 모두 "관찰" 수준으로 톤다운
+  if(a>0.7) return `<strong style="color:var(--amber)">뚜렷한 패턴 (${pct}%)</strong><br><span style="font-size:10px;color:var(--text3)">${dir} · 참고</span>`;
+  if(a>0.5) return `<strong style="color:var(--amber)">느슨한 패턴 (${pct}%)</strong><br><span style="font-size:10px;color:var(--text3)">${dir} · 참고</span>`;
   if(a>0.3) return `<strong>약한 연관 (${pct}%)</strong><br><span style="font-size:10px;color:var(--text3)">${dir} · 참고 수준</span>`;
   return `<strong style="color:var(--text3)">연관 미미 (${pct}%)</strong><br><span style="font-size:10px;color:var(--text3)">데이터 더 필요</span>`;
 }
@@ -1233,9 +1238,9 @@ function renderIgChart(posts,campKey,w){
   const peakSaleDay=camp.daily.reduce((a,b)=>b.sales>a.sales?b:a,camp.daily[0]);
   const peakDayPosts=fp.filter(p=>p.date===peakSaleDay.date||p.date===camp.daily[Math.max(0,camp.daily.findIndex(d=>d.date===peakSaleDay.date)-1)]?.date);
 
-  const topSignal=top.r>0.5?'<strong style="color:var(--green)">'+top.n+'</strong>이 매출과 강하게 연동됩니다 ('+Math.round(Math.abs(top.r)*100)+'% 일치율).'
-    :top.r>0.3?'<strong>'+top.n+'</strong>이 매출과 어느 정도 연동됩니다 ('+Math.round(Math.abs(top.r)*100)+'% 일치율).'
-    :'현재 데이터만으로는 단일 지표와 매출의 명확한 패턴을 확인하기 어렵습니다. 공구를 반복할수록 신뢰도가 높아집니다.';
+  const topSignal=top.r>0.5?'<strong style="color:var(--amber)">'+top.n+'</strong>과 매출 사이에 느슨한 패턴이 관찰됩니다 ('+Math.round(Math.abs(top.r)*100)+'% 일치율, 참고).'
+    :top.r>0.3?'<strong>'+top.n+'</strong>이 매출과 약한 연관성을 보입니다 ('+Math.round(Math.abs(top.r)*100)+'% 일치율, 참고).'
+    :'단일 지표와 매출의 명확한 패턴은 확인되지 않습니다. 표본이 작아 통계적 의미는 제한적이에요.';
 
   const reelAvgHtml=avgReelViews>0?'릴스 평균 조회수 <strong>'+avgReelViews.toLocaleString()+'회</strong>, 카드뉴스 평균 댓글 <strong>'+avgCardComments+'개</strong> — ':'';
   const reelRoleHtml=avgReelViews>5000&&avgCardComments>20?'릴스는 도달(노출), 카드뉴스는 구매 의향 시그널 역할로 역할 분담이 작동하고 있습니다.':avgReelViews>5000?'릴스 도달은 충분하나 댓글(구매 의향 시그널)이 부족합니다. CTA 강화를 검토하세요.':'콘텐츠 도달 규모를 높이는 것이 우선 과제입니다.';
@@ -1258,10 +1263,10 @@ function renderIgChart(posts,campKey,w){
     '<div style="font-size:11px;color:var(--text2)">댓글 '+(maxCommentPost?maxCommentPost.comments:0)+'개 · 조회 '+(maxViewPost?maxViewPost.views.toLocaleString():0)+'회</div>'+
     '</div></div>'+
     '<div style="font-size:13px;line-height:1.9;color:var(--text)">'+
-    '<strong>콘텐츠-매출 상관 분석</strong><br>'+topSignal+' '+reelAvgHtml+reelRoleHtml+'<br><br>'+
-    '<strong>피크 매출일('+peakSaleDay.date.slice(5)+') 전후 게시물 분석</strong><br>'+peakHtml+'<br><br>'+
-    '<strong>다음 공구 콘텐츠 전략 제안</strong><br>'+reuseHtml+
-    '업로드 '+W_LABELS[w]+' 내 전환이 가장 높은 구간 → 해당 시점 집중 배치 권장.'+
+    '<strong>콘텐츠-매출 관찰 (참고용)</strong><br>'+topSignal+' '+reelAvgHtml+reelRoleHtml+'<br><br>'+
+    '<strong>피크 매출일('+peakSaleDay.date.slice(5)+') 전후 게시물 관찰</strong><br>'+peakHtml+'<br><br>'+
+    '<strong>다음 공구 콘텐츠 전략 (제안)</strong><br>'+reuseHtml+
+    '업로드 '+W_LABELS[w]+' 내 전환 분포 참고하여 게시물 배치 검토.'+
     '</div>';
 }
 
@@ -1344,17 +1349,21 @@ async function loadIgData(){
   btn.disabled=true;
 
   let loaded=false;
-  const FROM_DATE='2026-04-19';
-  const TO_DATE='2026-05-18';
+  const FROM_DATE='2026-04-17';  // 첫 매출일(4/22) 5일 전
+  const TO_DATE='2026-05-26';    // 5월 마지막 공구(바첸) 종료일
 
-  // Supabase에서 확인 — 4월 데이터(from 날짜) 포함 여부 체크
+  // Supabase에서 확인 — 기간 내 데이터가 충분히 있는지
   try{
     if(sb){
       const {data}=await sb.from('instagram_posts').select('*')
         .gte('date', FROM_DATE).lte('date', TO_DATE).order('date');
-      // 4월 데이터가 있는지 확인 (4월 30일 이전 게시물)
-      const hasAprilData = data && data.some(r=>r.date<='2026-04-30');
-      if(data && data.length>0 && hasAprilData){
+      // 최소 데이터 기준: 게시물 50개 이상이고, 전체 기간의 70% 이상 커버
+      const expectedDays = Math.round((new Date(TO_DATE) - new Date(FROM_DATE)) / 86400000);
+      const uniqueDays = data ? new Set(data.map(r=>r.date)).size : 0;
+      const coverageOK = uniqueDays >= expectedDays * 0.5;
+      const hasEnoughPosts = data && data.length >= 50;
+
+      if(data && data.length>0 && coverageOK && hasEnoughPosts){
         igPosts=data.map(r=>({
           date:r.date,time:r.time,type:r.type,
           views:r.views,comments:r.comments,
@@ -1365,9 +1374,9 @@ async function loadIgData(){
         igLoaded=true;loaded=true;
         document.getElementById('igLoadIcon').textContent='✓';
         document.getElementById('igLoadText').textContent=igPosts.length+'개 게시물 로드됨 (저장된 데이터 · '+FROM_DATE+'~'+TO_DATE+')';
-      } else if(data && data.length>0 && !hasAprilData){
-        // 5월 데이터만 있음 → 4월 포함 재수집 필요 알림
-        document.getElementById('igLoadText').innerHTML='<span style="display:inline-flex;align-items:center;gap:6px"><span class="spinner"></span> 4월 데이터 없음 — Apify 재수집 중...</span>';
+      } else if(data && data.length>0){
+        // 데이터는 있으나 부족 → 재수집 필요 알림
+        document.getElementById('igLoadText').innerHTML='<span style="display:inline-flex;align-items:center;gap:6px"><span class="spinner"></span> 데이터 부족 — Apify 재수집 중...</span>';
       }
     }
   }catch(e){}
