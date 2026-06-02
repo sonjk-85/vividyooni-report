@@ -43,9 +43,10 @@ html{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
 .camp-btn[data-c="기타"].active{background:#888884}
 
 /* VIEW TOGGLE */
-.view-toggle{display:flex;gap:4px;background:var(--surface2);border-radius:var(--r-sm);padding:3px}
-.vt-btn{padding:5px 14px;border:none;border-radius:6px;font-family:'Pretendard',sans-serif;font-size:11px;font-weight:600;cursor:pointer;background:none;color:var(--text2);transition:all .15s}
-.vt-btn.active{background:var(--surface);color:var(--text)}
+.view-toggle{display:flex;gap:4px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:3px}
+.vt-btn{padding:7px 16px;border:none;border-radius:6px;font-family:'Pretendard',sans-serif;font-size:12px;font-weight:600;cursor:pointer;background:none;color:var(--text3);transition:all .15s}
+.vt-btn:hover{color:var(--text2)}
+.vt-btn.active{background:var(--green);color:#000}
 
 /* MAIN */
 .wrap{max-width:960px;margin:0 auto;padding:20px 28px 80px}
@@ -299,14 +300,14 @@ html{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
   <div class="nav-logo">SDSHOP · 분석</div>
   <div class="nav-right">
     <div class="view-toggle">
-      <button class="vt-btn active" id="vtCamp" onclick="setView('camp',this)">공구별</button>
+      <button class="vt-btn active" id="vtTrend" onclick="setView('trend',this)">트렌드</button>
+      <button class="vt-btn" id="vtCamp" onclick="setView('camp',this)">공구별</button>
       <button class="vt-btn" id="vtMonth" onclick="setView('month',this)">월별</button>
-      <button class="vt-btn" id="vtTrend" onclick="setView('trend',this)">트렌드</button>
     </div>
   </div>
 </nav>
 
-<div class="camp-bar" id="campBar">
+<div class="camp-bar" id="campBar" style="display:none">
   <button class="camp-btn active" data-c="all" onclick="selectCamp('all',this)">전체</button>
   <!-- 공구 버튼은 Supabase 로드 후 동적 생성 -->
 </div>
@@ -314,7 +315,7 @@ html{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
 <div class="wrap">
 
 <!-- ══ 공구별 뷰 ══ -->
-<div id="viewCamp">
+<div id="viewCamp" style="display:none">
 
   <div class="camp-meta" id="campMeta"></div>
 
@@ -508,7 +509,7 @@ html{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
 </div><!-- /viewMonth -->
 
 <!-- ============ 트렌드 뷰 ============ -->
-<div id="viewTrend" style="display:none">
+<div id="viewTrend">
 
   <div class="section-title">트렌드 분석 <span style="font-size:10px;font-weight:500;color:var(--text3);margin-left:8px" id="trendPeriodLabel">전체 기간</span></div>
 
@@ -1858,17 +1859,27 @@ async function init() {
     return;
   }
 
-  // 캠페인 버튼 동적 생성
+  // 캠페인 버튼 동적 생성 (공구별 탭 클릭 시 보일 버튼들 미리 준비)
   renderCampButtons();
 
-  // 매출 1위 공구를 기본 선택
+  // 매출 1위 공구를 currentCamp 기본값으로 (공구별 탭 진입 시 표시될 공구)
   const sorted = Object.entries(CAMPAIGNS).sort((a, b) => b[1].total - a[1].total);
   const firstKey = sorted[0][0];
   currentCamp = firstKey;
 
+  // 공구별 화면도 미리 렌더 (탭 전환 시 빠르게 보이게)
+  renderCamp(firstKey);
+
+  // 캠페인 버튼 활성화 상태 맞추기
   const initBtn = document.querySelector(`.camp-btn[data-c="${firstKey}"]`);
-  if (initBtn) selectCamp(firstKey, initBtn);
-  else renderCamp(firstKey);
+  if (initBtn) {
+    document.querySelectorAll('.camp-btn').forEach(b => b.classList.remove('active'));
+    initBtn.classList.add('active');
+  }
+
+  // 트렌드 화면 렌더 (첫 화면)
+  currentView = 'trend';
+  renderTrend();
 
   document.body.style.cursor = '';
 }
