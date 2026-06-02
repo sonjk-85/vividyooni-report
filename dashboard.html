@@ -301,6 +301,7 @@ html{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
     <div class="view-toggle">
       <button class="vt-btn active" id="vtCamp" onclick="setView('camp',this)">공구별</button>
       <button class="vt-btn" id="vtMonth" onclick="setView('month',this)">월별</button>
+      <button class="vt-btn" id="vtTrend" onclick="setView('trend',this)">트렌드</button>
     </div>
   </div>
 </nav>
@@ -505,6 +506,57 @@ html{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
     </div>
   </div>
 </div><!-- /viewMonth -->
+
+<!-- ============ 트렌드 뷰 ============ -->
+<div id="viewTrend" style="display:none">
+
+  <div class="section-title">트렌드 분석 <span style="font-size:10px;font-weight:500;color:var(--text3);margin-left:8px" id="trendPeriodLabel">전체 기간</span></div>
+
+  <!-- 카드 1: 일별 매출 추이 -->
+  <div class="cc">
+    <div class="cc-head">
+      <div class="cc-title">일별 매출 추이</div>
+      <div class="cc-sub" id="trendDailySub">—</div>
+    </div>
+    <div style="position:relative;height:280px"><canvas id="trendDailyChart"></canvas></div>
+    <div style="margin-top:10px;font-size:11px;color:var(--text3);line-height:1.6" id="trendDailyNote"></div>
+  </div>
+
+  <!-- 카드 2: 카테고리별 비중 -->
+  <div class="cc" style="margin-top:14px">
+    <div class="cc-head">
+      <div class="cc-title">카테고리별 매출 비중</div>
+      <div class="cc-sub" id="trendCatSub">—</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:center" id="trendCatWrap">
+      <div style="position:relative;height:200px"><canvas id="trendCatChart"></canvas></div>
+      <div id="trendCatList"></div>
+    </div>
+  </div>
+
+  <!-- 카드 3: 공구 성과 비교 -->
+  <div class="cc" style="margin-top:14px">
+    <div class="cc-head">
+      <div class="cc-title">공구 성과 비교</div>
+      <div class="cc-sub">매출 큰 순</div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="week-table" id="trendCampTable">
+        <thead><tr>
+          <th>공구</th>
+          <th>카테고리</th>
+          <th class="r">매출</th>
+          <th class="r mob-hide">주문</th>
+          <th class="r">전환율</th>
+          <th class="r">마진율</th>
+          <th class="r mob-hide">객단가</th>
+        </tr></thead>
+        <tbody id="trendCampBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /viewTrend -->
 
 </div><!-- /wrap -->
 
@@ -733,8 +785,10 @@ function setView(v,btn){
   btn.classList.add('active');
   document.getElementById('viewCamp').style.display=v==='camp'?'block':'none';
   document.getElementById('viewMonth').style.display=v==='month'?'block':'none';
+  document.getElementById('viewTrend').style.display=v==='trend'?'block':'none';
   document.getElementById('campBar').style.display=v==='camp'?'flex':'none';
   if(v==='month')renderMonth();
+  if(v==='trend')renderTrend();
 }
 
 function selectCamp(c,btn){
@@ -1510,6 +1564,217 @@ D1 집중도와 피크 타이밍이 어떤 의미인지, 이 공구의 구매 �
 }
 
 /* ─── 월별 뷰 ─── */
+// ============ 트렌드 뷰 ============
+function renderTrend(){
+  const camps=Object.entries(CAMPAIGNS);
+  if(!camps.length)return;
+
+  // 전체 기간 계산
+  const allDates=[];
+  camps.forEach(([k,c])=>{
+    c.daily.forEach(d=>{ if(!allDates.includes(d.date))allDates.push(d.date); });
+  });
+  allDates.sort();
+  const periodStart=allDates[0];
+  const periodEnd=allDates[allDates.length-1];
+  document.getElementById('trendPeriodLabel').textContent=`${periodStart} ~ ${periodEnd}`;
+
+  // ===== 카드 1: 일별 매출 추이 =====
+  renderTrendDaily(camps,allDates);
+
+  // ===== 카드 2: 카테고리별 비중 =====
+  renderTrendCategory(camps);
+
+  // ===== 카드 3: 공구 성과 비교 =====
+  renderTrendCampTable(camps);
+}
+
+function renderTrendDaily(camps,allDates){
+  // 일별 총 매출
+  const dailyTotal={};
+  allDates.forEach(d=>dailyTotal[d]=0);
+  camps.forEach(([k,c])=>{
+    c.daily.forEach(d=>{
+      if(dailyTotal[d.date]!==undefined)dailyTotal[d.date]+=d.sales;
+    });
+  });
+  const dates=Object.keys(dailyTotal).sort();
+  const values=dates.map(d=>dailyTotal[d]);
+  const totalSum=values.reduce((a,b)=>a+b,0);
+  const peakIdx=values.indexOf(Math.max(...values));
+  const peakDate=dates[peakIdx];
+  const peakVal=values[peakIdx];
+
+  document.getElementById('trendDailySub').textContent=`총 ${fmtW(totalSum)}원`;
+
+  // 공구 시작일 마커 (annotation)
+  const startMarkers=camps.map(([k,c])=>({
+    type:'line',
+    xMin:c.start,xMax:c.start,
+    borderColor:CAMP_COLORS[k]||'#888',
+    borderWidth:1,borderDash:[3,3],
+    label:{display:false}
+  }));
+
+  // 기존 차트 파괴
+  if(charts['trendDailyChart']){charts['trendDailyChart'].destroy();delete charts['trendDailyChart'];}
+
+  const ctx=document.getElementById('trendDailyChart').getContext('2d');
+  charts['trendDailyChart']=new Chart(ctx,{
+    type:'line',
+    data:{
+      labels:dates,
+      datasets:[{
+        label:'일 매출',
+        data:values,
+        borderColor:'#00c97a',
+        backgroundColor:'rgba(0,201,122,0.15)',
+        fill:true,tension:0.3,
+        pointRadius:3,pointHoverRadius:6,
+        borderWidth:2
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          callbacks:{
+            label:ctx=>fmtW(ctx.parsed.y)+'원',
+            afterLabel:ctx=>{
+              const d=ctx.label;
+              // 그날 진행 중이던 공구들 표시
+              const active=camps.filter(([k,c])=>c.daily.some(dd=>dd.date===d&&dd.sales>0));
+              return active.length>0?'진행 공구: '+active.map(([k,c])=>c.label).join(', '):'';
+            }
+          }
+        }
+      },
+      scales:{
+        x:{ticks:{color:'#909090',font:{size:9},maxRotation:0,autoSkip:true,maxTicksLimit:10}, grid:{display:false}},
+        y:{ticks:{color:'#909090',font:{size:10},callback:v=>fmtW(v)}, grid:{color:'rgba(255,255,255,0.05)'}}
+      }
+    }
+  });
+
+  // 안내 텍스트
+  const activeDays=values.filter(v=>v>0).length;
+  const avgDaily=activeDays>0?Math.round(values.reduce((a,b)=>a+b,0)/activeDays):0;
+  document.getElementById('trendDailyNote').innerHTML=
+    `📌 피크: <strong>${peakDate}</strong> (${fmtW(peakVal)}원) · 일 평균: ${fmtW(avgDaily)}원 · 매출 발생일: ${activeDays}일`;
+}
+
+function renderTrendCategory(camps){
+  // 카테고리별 집계 (대분류 정보가 없으므로 campaign 이름 기반 매핑)
+  // products 마스터의 대분류를 가져오기 위해 v_campaign_summary를 다시 쿼리하거나
+  // CAMPAIGNS 객체에 category 필드를 추가해야 함
+  // 일단 키 기반 하드 매핑으로 처리 (향후 Supabase에서 가져오게 개선 가능)
+  const CAT_MAP={
+    'air-stepper-6':'피트니스',
+    'gua-2':'뷰티',
+    'jakyoung-oil-1':'뷰티',
+    'gok-2':'푸드',
+    'thefit-1':'패션',
+    'baked-con-1':'푸드',
+    'bachen-1':'리빙'
+  };
+  const CAT_COLORS={
+    '뷰티':'#ff6b9d','패션':'#a78bfa','푸드':'#f5a623','피트니스':'#4a9eff','리빙':'#34d399','기타':'#888884'
+  };
+
+  const catSums={};
+  camps.forEach(([k,c])=>{
+    const cat=CAT_MAP[k]||'기타';
+    if(!catSums[cat])catSums[cat]={sales:0,orders:0,count:0};
+    catSums[cat].sales+=c.total;
+    catSums[cat].orders+=c.orders;
+    catSums[cat].count++;
+  });
+
+  const total=Object.values(catSums).reduce((a,b)=>a+b.sales,0);
+  const entries=Object.entries(catSums).sort((a,b)=>b[1].sales-a[1].sales);
+
+  document.getElementById('trendCatSub').textContent=`${entries.length}개 카테고리 · 총 ${fmtW(total)}원`;
+
+  // 도넛 차트
+  if(charts['trendCatChart']){charts['trendCatChart'].destroy();delete charts['trendCatChart'];}
+  const ctx=document.getElementById('trendCatChart').getContext('2d');
+  charts['trendCatChart']=new Chart(ctx,{
+    type:'doughnut',
+    data:{
+      labels:entries.map(([n])=>n),
+      datasets:[{
+        data:entries.map(([,v])=>v.sales),
+        backgroundColor:entries.map(([n])=>CAT_COLORS[n]||'#888'),
+        borderColor:'#1c1c1c',
+        borderWidth:2
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      cutout:'55%',
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          callbacks:{
+            label:ctx=>{
+              const pct=Math.round(ctx.parsed/total*100);
+              return ctx.label+': '+fmtW(ctx.parsed)+'원 ('+pct+'%)';
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // 옆 리스트
+  document.getElementById('trendCatList').innerHTML=entries.map(([cat,v])=>{
+    const pct=Math.round(v.sales/total*100);
+    const col=CAT_COLORS[cat]||'#888';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+      <div style="width:8px;height:8px;border-radius:50%;background:${col};flex-shrink:0"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:600">${cat} <span style="color:var(--text3);font-weight:400">· ${v.count}공구</span></div>
+        <div style="font-size:11px;color:var(--text2);font-family:'DM Mono',monospace">${fmtW(v.sales)}원</div>
+      </div>
+      <div style="font-size:13px;font-weight:700;color:${col};font-family:'DM Mono',monospace">${pct}%</div>
+    </div>`;
+  }).join('');
+}
+
+function renderTrendCampTable(camps){
+  // 매출 큰 순으로 정렬
+  const sorted=[...camps].sort((a,b)=>b[1].total-a[1].total);
+
+  const CAT_MAP={
+    'air-stepper-6':'피트니스','gua-2':'뷰티','jakyoung-oil-1':'뷰티',
+    'gok-2':'푸드','thefit-1':'패션','baked-con-1':'푸드','bachen-1':'리빙'
+  };
+  const CAT_BADGE={
+    '뷰티':'#ff6b9d22','패션':'#a78bfa22','푸드':'#f5a62322','피트니스':'#4a9eff22','리빙':'#34d39922'
+  };
+  const CAT_TEXT={
+    '뷰티':'#ff6b9d','패션':'#a78bfa','푸드':'#f5a623','피트니스':'#4a9eff','리빙':'#34d399'
+  };
+
+  document.getElementById('trendCampBody').innerHTML=sorted.map(([k,c])=>{
+    const col=CAMP_COLORS[k]||'#888';
+    const cat=CAT_MAP[k]||'기타';
+    const convRate=c.pv>0?(c.orders/c.pv*100).toFixed(1):'—';
+    const aov=c.orders>0?Math.round(c.total/c.orders):0;
+    return `<tr style="cursor:pointer" onclick="selectCampFromMonth('${k}')">
+      <td class="bold" style="color:${col}">${c.label}</td>
+      <td><span style="font-size:10px;padding:2px 8px;border-radius:10px;background:${CAT_BADGE[cat]||'#88888822'};color:${CAT_TEXT[cat]||'#888'};white-space:nowrap">${cat}</span></td>
+      <td class="r bold">${fmtW(c.total)}원</td>
+      <td class="r mob-hide">${fmt(c.orders)}건</td>
+      <td class="r" style="color:${c.pv>0?'var(--text)':'var(--text3)'}">${convRate}${c.pv>0?'%':''}</td>
+      <td class="r" style="color:${c.marginRate>=30?'var(--green)':c.marginRate>=20?'var(--amber)':'var(--text2)'}">${c.marginRate}%</td>
+      <td class="r mob-hide">${aov>0?fmtW(aov)+'원':'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+
 function renderMonth(){
   const camps=Object.entries(CAMPAIGNS);
 
