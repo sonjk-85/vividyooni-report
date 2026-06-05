@@ -48,6 +48,62 @@ html{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
 .vt-btn:hover{color:var(--text2)}
 .vt-btn.active{background:var(--green);color:#000}
 
+/* HELP TOOLTIP */
+.help-icon{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:15px;height:15px;border-radius:50%;
+  background:var(--surface3);color:var(--text3);
+  font-size:10px;font-weight:700;
+  margin-left:6px;cursor:pointer;
+  vertical-align:middle;
+  position:relative;
+  user-select:none;
+  transition:all .15s;
+}
+.help-icon:hover{background:var(--green);color:#000}
+.help-tip{
+  position:absolute;
+  bottom:calc(100% + 8px);left:50%;
+  transform:translateX(-50%);
+  background:#1a1a1a;color:var(--text);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:10px 12px;
+  font-size:11px;font-weight:500;
+  line-height:1.5;
+  width:240px;max-width:240px;
+  text-align:left;
+  white-space:normal;
+  word-break:keep-all;
+  box-shadow:0 8px 24px rgba(0,0,0,0.5);
+  z-index:1000;
+  pointer-events:none;
+  opacity:0;
+  transition:opacity .15s;
+}
+.help-tip::after{
+  content:'';
+  position:absolute;
+  top:100%;left:50%;
+  transform:translateX(-50%);
+  border:6px solid transparent;
+  border-top-color:#1a1a1a;
+}
+.help-icon:hover .help-tip,
+.help-icon.active .help-tip{opacity:1}
+.help-tip strong{color:var(--green);font-weight:700}
+.help-tip .formula{
+  display:block;background:var(--surface2);
+  border-radius:4px;padding:4px 6px;
+  margin:4px 0;
+  font-family:'DM Mono',monospace;font-size:10px;
+  color:var(--amber);
+}
+@media(max-width:640px){
+  .help-tip{width:200px;max-width:200px;left:0;transform:none}
+  .help-tip::after{left:14px;transform:none}
+}
+
 /* MAIN */
 .wrap{max-width:960px;margin:0 auto;padding:20px 28px 80px}
 
@@ -323,9 +379,9 @@ html{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
   <div class="summary-grid" style="grid-template-columns:repeat(5,1fr)">
     <div class="sk accent"><div class="sk-label">총 매출</div><div class="sk-val" id="kSales">—</div><div class="sk-sub" id="kSalesSub">—</div></div>
     <div class="sk"><div class="sk-label">출고 건수</div><div class="sk-val" id="kOrders">—</div><div class="sk-sub" id="kQty">—</div></div>
-    <div class="sk amber"><div class="sk-label">평균 객단가</div><div class="sk-val" id="kAov">—</div><div class="sk-sub">1건당 평균</div></div>
-    <div class="sk blue"><div class="sk-label">구매 전환율</div><div class="sk-val" id="kCvr">—</div><div class="sk-sub" id="kCvrSub">—</div></div>
-    <div class="sk" style="background:rgba(167,139,250,0.08);border-color:rgba(167,139,250,0.2)"><div class="sk-label">마진</div><div class="sk-val" id="kMargin" style="color:#a78bfa">—</div><div class="sk-sub" id="kMarginRate">—</div></div>
+    <div class="sk amber"><div class="sk-label">평균 객단가<span class="help-icon" tabindex="0">?<span class="help-tip">한 명이 평균적으로 얼마나 구매했는지 보여줍니다.<span class="formula">매출 ÷ 주문건수</span>같은 공구 안에서 <strong>주문수량</strong>(상품 개수)과 <strong>주문건수</strong>(결제 단위)를 구분해서 봅니다.</span></span></div><div class="sk-val" id="kAov">—</div><div class="sk-sub">1건당 평균</div></div>
+    <div class="sk blue"><div class="sk-label">구매 전환율<span class="help-icon" tabindex="0">?<span class="help-tip">페이지뷰 대비 실제 구매로 이어진 비율.<span class="formula">주문건수 ÷ 페이지뷰 × 100</span>SNS 공구 <strong>평균 3~8%</strong>가 일반적입니다. 낮으면 페이지·옵션 구성을 점검해보세요.</span></span></div><div class="sk-val" id="kCvr">—</div><div class="sk-sub" id="kCvrSub">—</div></div>
+    <div class="sk" style="background:rgba(167,139,250,0.08);border-color:rgba(167,139,250,0.2)"><div class="sk-label">마진<span class="help-icon" tabindex="0">?<span class="help-tip">판매가에서 매입가를 뺀 순이익.<span class="formula">매출 − 매입가 합계</span>마진율은 <strong>매출 대비 마진 비율</strong>입니다. 카테고리별로 다르지만 <strong>30% 이상</strong>이 안정적 수익 구간입니다.</span></span></div><div class="sk-val" id="kMargin" style="color:#a78bfa">—</div><div class="sk-sub" id="kMarginRate">—</div></div>
   </div>
 
   <!-- 일별 집계 테이블 -->
@@ -364,7 +420,7 @@ html{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
       <div style="position:relative;width:100%;height:200px"><canvas id="salesChart" role="img" aria-label="일별 매출 추이"></canvas></div>
     </div>
     <div class="cc" style="margin-bottom:0">
-      <div class="cc-head"><div class="cc-title">구매 퍼널</div></div>
+      <div class="cc-head"><div class="cc-title">구매 퍼널<span class="help-icon" tabindex="0">?<span class="help-tip">고객이 페이지를 본 후 구매까지 가는 흐름.<br><br><strong>페이지뷰 → 장바구니 → 구매완료</strong><br><br>각 단계 화살표 위 <strong>전환율(%)</strong>이 핵심입니다. 어느 단계에서 가장 많이 새는지 보세요.<br><br>장바구니 → 구매 단계 이탈이 크면 결제 단계나 옵션·가격 점검이 필요합니다.</span></span></div></div>
       <div class="funnel-flow" id="funnelGrid"></div>
       <div class="fn-loss" id="funnelLoss" style="display:none"></div>
     </div>
@@ -373,7 +429,7 @@ html{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
   <!-- 이탈 인사이트 -->
   <div class="cc" style="margin-top:14px" id="abandonCard">
     <div class="cc-head">
-      <div class="cc-title">장바구니 이탈 분석</div>
+      <div class="cc-title">장바구니 이탈 분석<span class="help-icon" tabindex="0">?<span class="help-tip">장바구니에 담았으나 결제 안 한 고객.<span class="formula">이탈률 = 이탈건수 ÷ 장바구니담김</span><strong>이탈 매출 손실</strong>은 그 이탈자들이 담았던 상품 금액 합계입니다.<br><br>이탈률 <strong>40~50%는 일반적</strong>이지만, 50% 이상이면 결제 페이지·옵션·가격 점검 필요.</span></span></div>
       <div class="cc-sub" id="abandonSub">—</div>
     </div>
     <div style="display:flex;gap:24px;flex-wrap:wrap">
@@ -1887,6 +1943,19 @@ async function init() {
 init().catch(e => {
   console.error('init error:', e);
   alert('초기화 실패: ' + e.message);
+});
+
+// 도움말 아이콘: 모바일 탭 토글 + 외부 클릭 시 닫기
+document.addEventListener('click', (e) => {
+  const icon = e.target.closest('.help-icon');
+  if (icon) {
+    e.stopPropagation();
+    const wasActive = icon.classList.contains('active');
+    document.querySelectorAll('.help-icon.active').forEach(el => el.classList.remove('active'));
+    if (!wasActive) icon.classList.add('active');
+  } else {
+    document.querySelectorAll('.help-icon.active').forEach(el => el.classList.remove('active'));
+  }
 });
 </script>
 </body>
